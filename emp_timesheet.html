@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Timesheet</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f5f6fa; display: flex; flex-direction: column;
+    }
+    nav {
+      display: flex; align-items: center; padding: 0 28px; height: 52px;
+      background: #fff; border-bottom: 1px solid #eaedf3; flex-shrink: 0; z-index: 10;
+    }
+    .nav-links { display: flex; align-items: center; gap: 2px; flex: 1; list-style: none; }
+    .nav-links a {
+      color: #555e7a; text-decoration: none; font-size: 0.82rem; font-weight: 600;
+      padding: 6px 10px; border-radius: 6px; white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover  { color: #1a2044; background: #f0f1f8; }
+    .nav-links a.active { color: #1a2044; background: #f0f1f8; }
+    .nav-user { display: flex; align-items: center; gap: 10px; flex-shrink: 0; position: relative; }
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%; background: #e8eaf6;
+      border: 1.5px solid #c5cae9; display: flex; align-items: center; justify-content: center; color: #5c6bc0;
+    }
+    .avatar svg { width: 16px; height: 16px; }
+    .user-name { font-size: 0.83rem; font-weight: 600; color: #1a2044; }
+    .menu-btn {
+      background: none; border: none; cursor: pointer; padding: 4px; color: #8892aa;
+      display: flex; align-items: center; border-radius: 4px; transition: color 0.15s, background 0.15s;
+    }
+    .menu-btn:hover { color: #1a2044; background: #f0f1f8; }
+    .menu-btn svg { width: 18px; height: 18px; }
+    .nav-dropdown {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      background: #fff; border: 1px solid #eaedf3; border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.13); min-width: 192px;
+      padding: 6px; z-index: 200;
+      opacity: 0; pointer-events: none; transform: translateY(-6px);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .nav-dropdown.open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .nav-dd-header { padding: 10px 12px 8px; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px; }
+    .nav-dd-header .dd-name { font-size: 0.83rem; font-weight: 700; color: #1a2044; }
+    .nav-dd-header .dd-sub  { font-size: 0.71rem; color: #9ca3af; margin-top: 1px; }
+    .nav-dd-item {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 8px 12px; border: none; background: none; border-radius: 7px;
+      font-size: 0.82rem; color: #374151; cursor: pointer; font-family: inherit; text-align: left;
+      transition: background 0.12s, color 0.12s;
+    }
+    .nav-dd-item:hover { background: #fef2f2; color: #dc2626; }
+    .nav-dd-item svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+    .page { flex: 1; padding: 28px 32px; max-width: 760px; width: 100%; margin: 0 auto; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; border-radius: 14px; padding: 18px 22px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      margin-bottom: 20px;
+      animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .page-header-left { display: flex; align-items: center; gap: 14px; }
+    .icon-box {
+      width: 46px; height: 46px; border-radius: 12px; background: #0d9488;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(13,148,136,0.3); flex-shrink: 0;
+    }
+    .icon-box svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .page-header-title h1 { font-size: 1.18rem; font-weight: 700; color: #1a2044; }
+    .page-header-title p  { font-size: 0.8rem; color: #8892aa; margin-top: 2px; }
+    .period-nav { display: flex; align-items: center; gap: 8px; }
+    .period-arrow {
+      width: 28px; height: 28px; border-radius: 7px; border: 1px solid #e5e7eb; background: #fff;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6b7280;
+      transition: background 0.12s, color 0.12s;
+    }
+    .period-arrow:hover { background: #f3f4f6; color: #1a2044; }
+    .period-arrow svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .period-label { font-size: 0.78rem; font-weight: 600; color: #374151; min-width: 200px; text-align: center; }
+
+    /* Stats */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px;
+      animation: fadeUp 0.4s 0.05s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .stat-card {
+      background: #fff; border-radius: 12px; padding: 16px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 14px;
+    }
+    .stat-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .stat-icon svg { width: 18px; height: 18px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .stat-val { font-size: 1.3rem; font-weight: 700; color: #1a2044; }
+    .stat-lbl { font-size: 0.73rem; color: #8892aa; margin-top: 1px; }
+
+    /* Timesheet card */
+    .ts-card {
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      overflow: hidden;
+      animation: fadeUp 0.4s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+      margin-bottom: 20px;
+    }
+    .ts-head {
+      padding: 14px 22px; border-bottom: 1px solid #f3f4f6;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ts-head h2  { font-size: 0.92rem; font-weight: 700; color: #1a2044; }
+    .ts-head span { font-size: 0.75rem; color: #9ca3af; }
+
+    /* Hours breakdown */
+    .hours-detail { padding: 22px; }
+    .emp-banner {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 18px; background: #f9fafb; border-radius: 12px;
+      margin-bottom: 20px; border: 1px solid #f3f4f6;
+    }
+    .emp-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .emp-info-name  { font-size: 0.95rem; font-weight: 700; color: #1a2044; }
+    .emp-info-role  { font-size: 0.75rem; color: #6b7280; margin-top: 2px; }
+    .emp-status-pill {
+      margin-left: auto; font-size: 0.72rem; font-weight: 600; padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .s-pending  { background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; }
+    .s-approved { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+
+    /* Hours grid */
+    .hours-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .hours-block {
+      background: #f9fafb; border-radius: 10px; padding: 16px;
+      border: 1px solid #f3f4f6; text-align: center;
+    }
+    .hb-val  { font-size: 1.6rem; font-weight: 700; color: #1a2044; }
+    .hb-lbl  { font-size: 0.73rem; color: #8892aa; margin-top: 3px; }
+    .hb-sub  { font-size: 0.7rem; color: #b0b8cc; margin-top: 2px; }
+    .hb-total { border: 2px solid #0d9488; background: #f0fafa; }
+    .hb-total .hb-val { color: #0d9488; }
+
+    /* Shift breakdown */
+    .breakdown-title { font-size: 0.8rem; font-weight: 700; color: #374151; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .shift-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; background: #f9fafb; border-radius: 9px;
+      border: 1px solid #f3f4f6; margin-bottom: 8px;
+    }
+    .shift-row:last-child { margin-bottom: 0; }
+    .sr-day   { font-size: 0.82rem; font-weight: 600; color: #1a2044; min-width: 90px; }
+    .sr-time  { font-size: 0.78rem; color: #6b7280; flex: 1; }
+    .sr-station {
+      font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+    }
+    .sr-station-kitchen   { background:#fff7ed; color:#c2410c; }
+    .sr-station-foh       { background:#eff6ff; color:#1d4ed8; }
+    .sr-station-bar       { background:#f5f3ff; color:#6d28d9; }
+    .sr-station-default   { background:#f3f4f6; color:#374151; }
+    .sr-hours { font-size: 0.85rem; font-weight: 600; color: #1a2044; min-width: 40px; text-align: right; }
+
+    /* Note */
+    .readonly-note {
+      display: flex; align-items: center; gap: 8px; padding: 11px 16px;
+      background: #fffbeb; border: 1px solid #fcd34d; border-radius: 9px;
+      font-size: 0.78rem; color: #92400e; margin-top: 16px;
+    }
+    .readonly-note svg { width: 15px; height: 15px; stroke: #d97706; fill: none; stroke-width: 2; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <ul class="nav-links">
+    <li><a href="emp_home.html">Home</a></li>
+    <li><a href="emp_schedule.html">Schedule</a></li>
+    <li><a href="emp_availability.html">Availability</a></li>
+    <li><a href="emp_timesheet.html" class="active">Timesheet</a></li>
+    <li><a href="emp_checklist.html">Checklist</a></li>
+    <li><a href="emp_notifications.html">Notifications</a></li>
+    <li><a href="emp_incident.html">Incident Form</a></li>
+  </ul>
+  <div class="nav-user">
+    <div class="avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+    </div>
+    <span class="user-name" id="displayName">Employee</span>
+    <button class="menu-btn" id="menuBtn" onclick="toggleNavMenu(event)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+      </svg>
+    </button>
+    <div class="nav-dropdown" id="navDropdown">
+      <div class="nav-dd-header">
+        <div class="dd-name" id="ddFullName">Employee</div>
+        <div class="dd-sub">Employee Portal</div>
+      </div>
+      <button class="nav-dd-item" onclick="logout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log Out
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+          <line x1="8" y1="14" x2="8.01" y2="14"/><line x1="12" y1="14" x2="12.01" y2="14"/>
+        </svg>
+      </div>
+      <div class="page-header-title">
+        <h1>My Timesheet</h1>
+        <p>View your hours for the current pay period</p>
+      </div>
+    </div>
+    <div class="period-nav">
+      <button class="period-arrow" onclick="changePeriod(-1)">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="period-label" id="periodLabel"></span>
+      <button class="period-arrow" onclick="changePeriod(1)">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;">
+        <svg viewBox="0 0 24 24" stroke="#22c55e">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <div><div class="stat-val" id="statReg">–</div><div class="stat-lbl">Regular Hours</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fff7ed;">
+        <svg viewBox="0 0 24 24" stroke="#f97316">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <div><div class="stat-val" id="statOT">–</div><div class="stat-lbl">Overtime Hours</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fafa;">
+        <svg viewBox="0 0 24 24" stroke="#0d9488">
+          <polyline points="9 11 12 14 22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+      </div>
+      <div><div class="stat-val" id="statTotal">–</div><div class="stat-lbl">Total Hours</div></div>
+    </div>
+  </div>
+
+  <!-- Timesheet card -->
+  <div class="ts-card">
+    <div class="ts-head">
+      <h2>Hours Breakdown</h2>
+      <span id="periodSub"></span>
+    </div>
+    <div class="hours-detail" id="hoursDetail"></div>
+  </div>
+
+</div>
+
+<script>
+  // === Timesheet class (Timesheet.py) ===
+  class Timesheet {
+    constructor(timesheetId, shiftId, userId, totalHoursWorked) {
+      this.timesheetId = timesheetId; this.shiftId = shiftId;
+      this.userId = userId; this.totalHoursWorked = totalHoursWorked;
+    }
+    calculateTotalHours() {
+      console.log('Timesheet.calculateTotalHours: Total hours worked:', this.totalHoursWorked);
+      return this.totalHoursWorked;
+    }
+    updateHours(totalHoursWorked) {
+      this.totalHoursWorked = totalHoursWorked;
+      console.log('Timesheet.updateHours: Hours successfully updated'); return true;
+    }
+    finalizeHoursRecord() {
+      if (this.totalHoursWorked > 0) {
+        console.log('Timesheet.finalizeHoursRecord: Timesheet record finalized'); return true;
+      }
+      console.log('Timesheet.finalizeHoursRecord: Timesheet record not finalized'); return false;
+    }
+    verifyTimesheetDetails() {
+      const details = `Timesheet ${this.timesheetId}, Hours: ${this.totalHoursWorked}`;
+      console.log('Timesheet.verifyTimesheetDetails:', details); return details;
+    }
+  }
+
+  // === Employee class (Employee.py) — viewTimesheet ===
+  class Employee {
+    constructor(userId) { this.userId = userId; }
+    viewTimesheet() { console.log('Employee.viewTimesheet: Viewing timesheet'); return true; }
+  }
+
+  const empId   = parseInt(sessionStorage.getItem('emp_empId') || '1');
+  const empName = sessionStorage.getItem('emp_empName') || 'Employee';
+  document.getElementById('displayName').textContent = empName.split(' ')[0];
+  document.getElementById('ddFullName').textContent  = empName;
+  const currentEmployee = new Employee(empId);
+  currentEmployee.viewTimesheet();
+
+  const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const ANCHOR     = new Date(2026, 2, 23); // March 23, 2026
+
+  // Department assignments: Kitchen=Sarah(1),Emily(3) | Bar=Michael(2) | FOH=James(4),Aiko(5)
+  // Pay period covers 14 days; Tue–Sat only (Sun/Mon restaurant closed)
+  const EMP_DATA = {
+    1: { name:'Sarah Johnson', role:'Full-time · Waiter', color:'#3b82f6',
+         periods: {
+           0: { regH:54, otH:4, status:'Pending', shifts:[
+             { day:'Tue Mar 24', time:'5:00 PM – 10:00 PM', station:'Front of House', h:5  },
+             { day:'Thu Mar 26', time:'4:00 PM – 9:00 PM',  station:'Front of House', h:5  },
+             { day:'Fri Mar 27', time:'11:00 AM – 9:00 PM', station:'Front of House', h:10 },
+             { day:'Sat Mar 28', time:'12:00 PM – 9:00 PM', station:'Front of House', h:9  },
+             { day:'Tue Mar 31', time:'5:00 PM – 10:00 PM', station:'Front of House', h:5  },
+             { day:'Thu Apr 2',  time:'4:00 PM – 9:00 PM',  station:'Front of House', h:5  },
+             { day:'Fri Apr 3',  time:'11:00 AM – 9:00 PM', station:'Front of House', h:10 },
+             { day:'Sat Apr 4',  time:'12:00 PM – 9:00 PM', station:'Front of House', h:9  },
+           ]},
+           '-1': { regH:58, otH:0, status:'Approved', shifts:[
+             { day:'Tue Mar 10', time:'5:00 PM – 10:00 PM', station:'Front of House', h:5  },
+             { day:'Thu Mar 12', time:'4:00 PM – 9:00 PM',  station:'Front of House', h:5  },
+             { day:'Fri Mar 13', time:'11:00 AM – 9:00 PM', station:'Front of House', h:10 },
+             { day:'Sat Mar 14', time:'12:00 PM – 9:00 PM', station:'Front of House', h:9  },
+             { day:'Tue Mar 17', time:'5:00 PM – 10:00 PM', station:'Front of House', h:5  },
+             { day:'Thu Mar 19', time:'4:00 PM – 9:00 PM',  station:'Front of House', h:5  },
+             { day:'Fri Mar 20', time:'11:00 AM – 9:00 PM', station:'Front of House', h:10 },
+             { day:'Sat Mar 21', time:'12:00 PM – 9:00 PM', station:'Front of House', h:9  },
+           ]},
+         }
+    },
+    2: { name:'Michael Chen', role:'Part-time · Bar', color:'#f59e0b',
+         periods: {
+           0: { regH:44, otH:0, status:'Pending', shifts:[
+             { day:'Wed Mar 25', time:'3:00 PM – 10:00 PM',  station:'Bar', h:7 },
+             { day:'Fri Mar 27', time:'4:00 PM – 11:00 PM',  station:'Bar', h:7 },
+             { day:'Sat Mar 28', time:'3:00 PM – 11:00 PM',  station:'Bar', h:8 },
+             { day:'Wed Apr 1',  time:'3:00 PM – 10:00 PM',  station:'Bar', h:7 },
+             { day:'Fri Apr 3',  time:'4:00 PM – 11:00 PM',  station:'Bar', h:7 },
+             { day:'Sat Apr 4',  time:'3:00 PM – 11:00 PM',  station:'Bar', h:8 },
+           ]},
+           '-1': { regH:44, otH:0, status:'Approved', shifts:[
+             { day:'Wed Mar 11', time:'3:00 PM – 10:00 PM',  station:'Bar', h:7 },
+             { day:'Fri Mar 13', time:'4:00 PM – 11:00 PM',  station:'Bar', h:7 },
+             { day:'Sat Mar 14', time:'3:00 PM – 11:00 PM',  station:'Bar', h:8 },
+             { day:'Wed Mar 18', time:'3:00 PM – 10:00 PM',  station:'Bar', h:7 },
+             { day:'Fri Mar 20', time:'4:00 PM – 11:00 PM',  station:'Bar', h:7 },
+             { day:'Sat Mar 21', time:'3:00 PM – 11:00 PM',  station:'Bar', h:8 },
+           ]},
+         }
+    },
+    3: { name:'Emily Davis', role:'Full-time · Kitchen', color:'#10b981',
+         periods: {
+           0: { regH:58, otH:0, status:'Pending', shifts:[
+             { day:'Tue Mar 24', time:'5:00 PM – 10:00 PM', station:'Kitchen', h:5  },
+             { day:'Thu Mar 26', time:'5:00 PM – 10:00 PM', station:'Kitchen', h:5  },
+             { day:'Fri Mar 27', time:'11:00 AM – 9:00 PM', station:'Kitchen', h:10 },
+             { day:'Sat Mar 28', time:'12:00 PM – 9:00 PM', station:'Kitchen', h:9  },
+             { day:'Tue Mar 31', time:'5:00 PM – 10:00 PM', station:'Kitchen', h:5  },
+             { day:'Thu Apr 2',  time:'5:00 PM – 10:00 PM', station:'Kitchen', h:5  },
+             { day:'Fri Apr 3',  time:'11:00 AM – 9:00 PM', station:'Kitchen', h:10 },
+             { day:'Sat Apr 4',  time:'12:00 PM – 9:00 PM', station:'Kitchen', h:9  },
+           ]},
+           '-1': { regH:54, otH:0, status:'Approved', shifts:[
+             { day:'Tue Mar 10', time:'5:00 PM – 10:00 PM', station:'Kitchen', h:5  },
+             { day:'Thu Mar 12', time:'5:00 PM – 10:00 PM', station:'Kitchen', h:5  },
+             { day:'Fri Mar 13', time:'11:00 AM – 9:00 PM', station:'Kitchen', h:10 },
+             { day:'Tue Mar 17', time:'5:00 PM – 10:00 PM', station:'Kitchen', h:5  },
+             { day:'Thu Mar 19', time:'5:00 PM – 10:00 PM', station:'Kitchen', h:5  },
+             { day:'Fri Mar 20', time:'11:00 AM – 9:00 PM', station:'Kitchen', h:10 },
+             { day:'Sat Mar 21', time:'12:00 PM – 9:00 PM', station:'Kitchen', h:9  },
+           ]},
+         }
+    },
+    4: { name:'James Wilson', role:'Part-time · Front of House', color:'#8b5cf6',
+         periods: {
+           0: { regH:48, otH:0, status:'Pending', shifts:[
+             { day:'Wed Mar 25', time:'11:00 AM – 4:00 PM', station:'Front of House', h:5  },
+             { day:'Thu Mar 26', time:'4:00 PM – 9:00 PM',  station:'Front of House', h:5  },
+             { day:'Fri Mar 27', time:'11:00 AM – 9:00 PM', station:'Front of House', h:10 },
+             { day:'Sat Mar 28', time:'12:00 PM – 9:00 PM', station:'Front of House', h:9  },
+             { day:'Wed Apr 1',  time:'11:00 AM – 4:00 PM', station:'Front of House', h:5  },
+             { day:'Thu Apr 2',  time:'4:00 PM – 9:00 PM',  station:'Front of House', h:5  },
+             { day:'Fri Apr 3',  time:'11:00 AM – 9:00 PM', station:'Front of House', h:10 },
+             { day:'Sat Apr 4',  time:'12:00 PM – 9:00 PM', station:'Front of House', h:9  },
+           ]},
+           '-1': { regH:44, otH:0, status:'Approved', shifts:[
+             { day:'Wed Mar 11', time:'11:00 AM – 4:00 PM', station:'Front of House', h:5  },
+             { day:'Thu Mar 12', time:'4:00 PM – 9:00 PM',  station:'Front of House', h:5  },
+             { day:'Fri Mar 13', time:'11:00 AM – 9:00 PM', station:'Front of House', h:10 },
+             { day:'Sat Mar 14', time:'12:00 PM – 9:00 PM', station:'Front of House', h:9  },
+             { day:'Wed Mar 18', time:'11:00 AM – 4:00 PM', station:'Front of House', h:5  },
+             { day:'Thu Mar 19', time:'4:00 PM – 9:00 PM',  station:'Front of House', h:5  },
+           ]},
+         }
+    },
+    5: { name:'Aiko Tanaka', role:'Front of House', color:'#ef4444',
+         periods: {
+           0:  { regH:0, otH:0, status:'Pending', shifts:[] }, // On vacation this period
+           '-1': { regH:44, otH:0, status:'Approved', shifts:[
+             { day:'Wed Mar 11', time:'11:00 AM – 4:00 PM', station:'Front of House', h:5  },
+             { day:'Thu Mar 12', time:'4:00 PM – 9:00 PM',  station:'Front of House', h:5  },
+             { day:'Fri Mar 13', time:'11:00 AM – 9:00 PM', station:'Front of House', h:10 },
+             { day:'Sat Mar 14', time:'12:00 PM – 9:00 PM', station:'Front of House', h:9  },
+             { day:'Wed Mar 18', time:'11:00 AM – 4:00 PM', station:'Front of House', h:5  },
+             { day:'Thu Mar 19', time:'4:00 PM – 9:00 PM',  station:'Front of House', h:5  },
+           ]},
+         }
+    },
+  };
+
+  let periodOffset = 0;
+
+  function getPeriodStart(offset) {
+    const d = new Date(ANCHOR);
+    d.setDate(d.getDate() + offset * 14);
+    return d;
+  }
+
+  function fmtDate(d) { return `${MONTH_ABBR[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }
+  function fmtH(h) {
+    if (h === 0) return '0h';
+    const whole = Math.floor(h);
+    const frac  = h - whole;
+    return frac ? `${whole}h ${Math.round(frac * 60)}m` : `${whole}h`;
+  }
+
+  function stationCls(s) {
+    if (s === 'Kitchen')        return 'sr-station-kitchen';
+    if (s === 'Front of House') return 'sr-station-foh';
+    if (s === 'Bar')            return 'sr-station-bar';
+    return 'sr-station-default';
+  }
+
+  function render() {
+    const ps = getPeriodStart(periodOffset);
+    const pe = new Date(ps); pe.setDate(pe.getDate() + 13);
+    const label = `${fmtDate(ps)} – ${fmtDate(pe)}`;
+    document.getElementById('periodLabel').textContent = label;
+    document.getElementById('periodSub').textContent   = label;
+
+    const empBase = EMP_DATA[empId] || EMP_DATA[1];
+    const emp  = { ...empBase, name: empName, role: 'Full-time · Waiter' };
+    const data = emp.periods[periodOffset] || { regH:0, otH:0, status:'Pending', shifts:[] };
+
+    // Timesheet.calculateTotalHours + verifyTimesheetDetails (Timesheet.py)
+    const ts = new Timesheet(Math.abs(periodOffset) + 1, periodOffset, empId, data.regH + data.otH);
+    ts.calculateTotalHours();
+    ts.verifyTimesheetDetails();
+    ts.finalizeHoursRecord();
+
+    document.getElementById('statReg').textContent   = fmtH(data.regH);
+    document.getElementById('statOT').textContent    = fmtH(data.otH);
+    document.getElementById('statTotal').textContent = fmtH(data.regH + data.otH);
+
+    const statusCls = data.status === 'Approved' ? 's-approved' : 's-pending';
+    const initials  = emp.name.split(' ').map(w => w[0]).join('');
+
+    let shiftsHtml = '';
+    if (data.shifts.length === 0) {
+      shiftsHtml = `<div style="text-align:center;padding:24px;color:#9ca3af;font-size:0.84rem;">No shifts recorded for this period.</div>`;
+    } else {
+      data.shifts.forEach(s => {
+        shiftsHtml += `
+          <div class="shift-row">
+            <span class="sr-day">${s.day}</span>
+            <span class="sr-time">${s.time}</span>
+            <span class="sr-station ${stationCls(s.station)}">${s.station}</span>
+            <span class="sr-hours">${fmtH(s.h)}</span>
+          </div>`;
+      });
+    }
+
+    document.getElementById('hoursDetail').innerHTML = `
+      <div class="emp-banner">
+        <div class="emp-avatar" style="background:${emp.color}">${initials}</div>
+        <div>
+          <div class="emp-info-name">${emp.name}</div>
+          <div class="emp-info-role">${emp.role}</div>
+        </div>
+        <span class="emp-status-pill ${statusCls}">${data.status}</span>
+      </div>
+
+      <div class="hours-grid">
+        <div class="hours-block">
+          <div class="hb-val">${fmtH(data.regH)}</div>
+          <div class="hb-lbl">Regular Hours</div>
+          <div class="hb-sub">Standard shifts</div>
+        </div>
+        <div class="hours-block">
+          <div class="hb-val">${fmtH(data.otH)}</div>
+          <div class="hb-lbl">Overtime Hours</div>
+          <div class="hb-sub">Over 40h/week</div>
+        </div>
+        <div class="hours-block hb-total">
+          <div class="hb-val">${fmtH(data.regH + data.otH)}</div>
+          <div class="hb-lbl">Total Hours</div>
+          <div class="hb-sub">This period</div>
+        </div>
+      </div>
+
+      <div class="breakdown-title">Shift Breakdown</div>
+      ${shiftsHtml}
+
+      <div class="readonly-note">
+        <svg viewBox="0 0 24 24">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Hours are recorded by your manager. If you believe there is an error, please contact your manager directly.
+      </div>
+    `;
+  }
+
+  function changePeriod(dir) { periodOffset += dir; render(); }
+
+  render();
+
+  function toggleNavMenu(e) {
+    e.stopPropagation();
+    document.getElementById('navDropdown').classList.toggle('open');
+  }
+  function logout() { sessionStorage.clear(); window.location.href = 'emp_login.html'; }
+  document.addEventListener('click', function() {
+    const dd = document.getElementById('navDropdown');
+    if (dd) dd.classList.remove('open');
+  });
+</script>
+</body>
+</html>

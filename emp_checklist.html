@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Checklist</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      height: 100vh; overflow: hidden;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f5f6fa; display: flex; flex-direction: column;
+    }
+    nav {
+      display: flex; align-items: center; padding: 0 28px; height: 52px;
+      background: #fff; border-bottom: 1px solid #eaedf3; flex-shrink: 0; z-index: 10;
+    }
+    .nav-links { display: flex; align-items: center; gap: 2px; flex: 1; list-style: none; }
+    .nav-links a {
+      color: #555e7a; text-decoration: none; font-size: 0.82rem; font-weight: 600;
+      padding: 6px 10px; border-radius: 6px; white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover  { color: #1a2044; background: #f0f1f8; }
+    .nav-links a.active { color: #1a2044; background: #f0f1f8; }
+    .nav-user { display: flex; align-items: center; gap: 10px; flex-shrink: 0; position: relative; }
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%; background: #e8eaf6;
+      border: 1.5px solid #c5cae9; display: flex; align-items: center; justify-content: center; color: #5c6bc0;
+    }
+    .avatar svg { width: 16px; height: 16px; }
+    .user-name { font-size: 0.83rem; font-weight: 600; color: #1a2044; }
+    .menu-btn {
+      background: none; border: none; cursor: pointer; padding: 4px; color: #8892aa;
+      display: flex; align-items: center; border-radius: 4px; transition: color 0.15s, background 0.15s;
+    }
+    .menu-btn:hover { color: #1a2044; background: #f0f1f8; }
+    .menu-btn svg { width: 18px; height: 18px; }
+    .nav-dropdown {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      background: #fff; border: 1px solid #eaedf3; border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.13); min-width: 192px;
+      padding: 6px; z-index: 200;
+      opacity: 0; pointer-events: none; transform: translateY(-6px);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .nav-dropdown.open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .nav-dd-header { padding: 10px 12px 8px; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px; }
+    .nav-dd-header .dd-name { font-size: 0.83rem; font-weight: 700; color: #1a2044; }
+    .nav-dd-header .dd-sub  { font-size: 0.71rem; color: #9ca3af; margin-top: 1px; }
+    .nav-dd-item {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 8px 12px; border: none; background: none; border-radius: 7px;
+      font-size: 0.82rem; color: #374151; cursor: pointer; font-family: inherit; text-align: left;
+      transition: background 0.12s, color 0.12s;
+    }
+    .nav-dd-item:hover { background: #fef2f2; color: #dc2626; }
+    .nav-dd-item svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+    .wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Top header */
+    .top-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 28px; background: #fff; border-bottom: 1px solid #eaedf3; flex-shrink: 0;
+    }
+    .th-left { display: flex; align-items: center; gap: 14px; }
+    .icon-box {
+      width: 42px; height: 42px; border-radius: 11px; background: #0d9488;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(13,148,136,0.28); flex-shrink: 0;
+    }
+    .icon-box svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .th-title h1 { font-size: 1.05rem; font-weight: 700; color: #1a2044; }
+    .th-title p  { font-size: 0.78rem; color: #8892aa; margin-top: 1px; }
+    .th-right { display: flex; gap: 10px; }
+    .info-pill {
+      font-size: 0.75rem; font-weight: 500; padding: 5px 13px;
+      border-radius: 20px; background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb;
+    }
+    .info-pill strong { color: #1a2044; }
+
+    /* Split */
+    .split { flex: 1; display: flex; overflow: hidden; }
+
+    /* Left panel */
+    .left-panel {
+      width: 280px; flex-shrink: 0; background: #fff; border-right: 1px solid #eaedf3;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .panel-head {
+      padding: 13px 20px; border-bottom: 1px solid #f3f4f6;
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .panel-head-title { font-size: 0.88rem; font-weight: 700; color: #1a2044; }
+    .panel-sub        { font-size: 0.73rem; color: #9ca3af; }
+    .shift-list { overflow-y: auto; flex: 1; }
+
+    /* Shift card (left) */
+    .shift-card {
+      padding: 13px 20px; border-bottom: 1px solid #f3f4f6; cursor: pointer;
+      transition: background 0.12s; border-left: 3px solid transparent;
+    }
+    .shift-card:hover    { background: #f9fafb; }
+    .shift-card.selected { background: #f0fafa; border-left-color: #0d9488; }
+    .sc-row1 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+    .sc-day  { font-size: 0.88rem; font-weight: 700; color: #1a2044; }
+    .sc-date { font-size: 0.72rem; color: #9ca3af; }
+    .sc-time { font-size: 0.74rem; color: #6b7280; margin-bottom: 6px; }
+    .sc-row2 { display: flex; align-items: center; justify-content: space-between; }
+    .station-pill {
+      font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; white-space: nowrap;
+    }
+    .progress-pill {
+      font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; white-space: nowrap;
+    }
+    .prog-done { background: #dcfce7; color: #15803d; }
+    .prog-part { background: #fffbeb; color: #92400e; }
+    .prog-none { background: #f3f4f6; color: #9ca3af; }
+
+    /* Right panel */
+    .right-panel { flex: 1; overflow-y: auto; padding: 24px 28px; background: #f5f6fa; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Empty state */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 440px; color: #b0b8cc; text-align: center;
+    }
+    .empty-state svg { width: 56px; height: 56px; stroke: #d1d8e8; fill: none; stroke-width: 1.5; stroke-linecap: round; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 1rem; font-weight: 600; color: #8892aa; margin-bottom: 6px; }
+    .empty-state p  { font-size: 0.82rem; color: #b8c0cc; }
+
+    /* Section cards */
+    .sec-card {
+      background: #fff; border-radius: 14px; margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      overflow: hidden; animation: fadeUp 0.3s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .sec-head {
+      padding: 13px 20px; border-bottom: 1px solid #f3f4f6;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sec-head h3   { font-size: 0.9rem; font-weight: 700; color: #1a2044; }
+    .sec-head span { font-size: 0.75rem; color: #9ca3af; }
+    .sec-body { padding: 16px 20px; }
+
+    /* Shift detail */
+    .shift-detail { display: flex; align-items: center; gap: 14px; padding: 16px 20px; }
+    .sd-icon {
+      width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sd-icon svg { width: 19px; height: 19px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sd-info .sd-name { font-size: 0.95rem; font-weight: 700; color: #1a2044; }
+    .sd-info .sd-meta { font-size: 0.78rem; color: #6b7280; margin-top: 2px; }
+    .sd-badge { margin-left: auto; }
+
+    /* Progress bar */
+    .progress-wrap { margin-bottom: 4px; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: #6b7280; margin-bottom: 6px; }
+    .progress-bar { height: 8px; border-radius: 20px; background: #f3f4f6; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 20px; background: #0d9488; transition: width 0.3s; }
+
+    /* Task items */
+    .task-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 14px; border-radius: 9px; background: #f9fafb;
+      border: 1px solid #f3f4f6; margin-bottom: 8px; cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+      user-select: none;
+    }
+    .task-item:last-child { margin-bottom: 0; }
+    .task-item:hover { border-color: #e5e7eb; background: #f5f5f5; }
+    .task-item.done { background: #f0fafa; border-color: #a7f3d0; }
+
+    .task-checkbox {
+      width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
+      border: 2px solid #d1d5db; background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .task-item.done .task-checkbox {
+      background: #0d9488; border-color: #0d9488;
+    }
+    .task-checkbox svg { width: 12px; height: 12px; stroke: #fff; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity 0.15s; }
+    .task-item.done .task-checkbox svg { opacity: 1; }
+
+    .task-num { font-size: 0.7rem; color: #9ca3af; font-weight: 600; min-width: 18px; }
+    .task-text {
+      flex: 1; font-size: 0.85rem; color: #374151; transition: color 0.15s;
+    }
+    .task-item.done .task-text { color: #9ca3af; text-decoration: line-through; }
+
+    /* Time tracking */
+    .task-time {
+      display: flex; align-items: center; gap: 4px; margin-left: auto; flex-shrink: 0;
+    }
+    .task-time-input {
+      width: 52px; padding: 4px 6px; border: 1px solid #e5e7eb; border-radius: 6px;
+      font-size: 0.78rem; color: #374151; text-align: center; font-family: inherit;
+      outline: none; background: #fff; transition: border-color 0.2s, box-shadow 0.2s;
+      -moz-appearance: textfield;
+    }
+    .task-time-input::-webkit-inner-spin-button,
+    .task-time-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .task-time-input:focus { border-color: #0d9488; box-shadow: 0 0 0 2px rgba(13,148,136,0.15); }
+    .task-item.done .task-time-input { border-color: #a7f3d0; background: #f0fafa; }
+    .task-time-label { font-size: 0.72rem; color: #9ca3af; white-space: nowrap; }
+    .task-time-total {
+      font-size: 0.75rem; font-weight: 600; color: #0d9488;
+      padding: 3px 9px; background: #f0fafa; border-radius: 20px;
+      border: 1px solid #a7f3d0; margin-left: 4px;
+    }
+
+    /* Save toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; background: #1a2044; color: #fff;
+      padding: 12px 20px; border-radius: 10px; font-size: 0.84rem; font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+      opacity: 0; transform: translateY(8px);
+      transition: opacity 0.22s, transform 0.22s;
+      pointer-events: none; z-index: 200;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast svg { width: 16px; height: 16px; stroke: #34d399; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <ul class="nav-links">
+    <li><a href="emp_home.html">Home</a></li>
+    <li><a href="emp_schedule.html">Schedule</a></li>
+    <li><a href="emp_availability.html">Availability</a></li>
+    <li><a href="emp_timesheet.html">Timesheet</a></li>
+    <li><a href="emp_checklist.html" class="active">Checklist</a></li>
+    <li><a href="emp_notifications.html">Notifications</a></li>
+    <li><a href="emp_incident.html">Incident Form</a></li>
+  </ul>
+  <div class="nav-user">
+    <div class="avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+    </div>
+    <span class="user-name" id="displayName">Employee</span>
+    <button class="menu-btn" id="menuBtn" onclick="toggleNavMenu(event)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+      </svg>
+    </button>
+    <div class="nav-dropdown" id="navDropdown">
+      <div class="nav-dd-header">
+        <div class="dd-name" id="ddFullName">Employee</div>
+        <div class="dd-sub">Employee Portal</div>
+      </div>
+      <button class="nav-dd-item" onclick="logout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log Out
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrapper">
+  <div class="top-header">
+    <div class="th-left">
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="2"/>
+          <polyline points="9 12 11 14 15 10"/>
+        </svg>
+      </div>
+      <div class="th-title">
+        <h1>My Checklist</h1>
+        <p>Complete your assigned tasks for each shift</p>
+      </div>
+    </div>
+    <div class="th-right">
+      <div class="info-pill"><strong id="doneCount">0</strong> tasks completed today</div>
+    </div>
+  </div>
+
+  <div class="split">
+    <!-- Left: shifts -->
+    <div class="left-panel">
+      <div class="panel-head">
+        <span class="panel-head-title">My Shifts</span>
+        <span class="panel-sub">Week of Mar 30</span>
+      </div>
+      <div class="shift-list" id="shiftList"></div>
+    </div>
+
+    <!-- Right: task editor -->
+    <div class="right-panel">
+      <div class="empty-state" id="emptyState">
+        <svg viewBox="0 0 24 24">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="2"/>
+        </svg>
+        <h3>Select a shift to see tasks</h3>
+        <p>Choose a shift from the left to view and complete its checklist</p>
+      </div>
+      <div id="editor" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg">Progress saved!</span>
+</div>
+
+<script>
+  // === Task class (Checklist.py) ===
+  class Task {
+    constructor(shiftId, checklistId, userId, taskDescription, taskStatus, timeSpent) {
+      this.shiftId = shiftId; this.checklistId = checklistId; this.userId = userId;
+      this.taskDescription = taskDescription; this.taskStatus = taskStatus; this.timeSpent = timeSpent;
+    }
+    markTaskComplete(taskId, status) {
+      this.taskStatus = status;
+      console.log(`Task.markTaskComplete: Task ${taskId} marked as ${status}`); return true;
+    }
+    viewChecklist() {
+      console.log('Task.viewChecklist: Checklist viewed'); return [this];
+    }
+    saveChecklist() {
+      console.log('Task.saveChecklist: Checklist successfully saved'); return true;
+    }
+    validateResponse(taskId) {
+      if (this.taskStatus !== '') {
+        console.log('Task.validateResponse: Response confirmed'); return true;
+      }
+      console.log('Task.validateResponse: Response is empty'); return false;
+    }
+    flagNoResponse(taskId) {
+      const message = `Task ${taskId} flagged`;
+      console.log('Task.flagNoResponse:', message); return message;
+    }
+    reminderNotification() {
+      console.log('Task.reminderNotification: Reminder sent'); return 'Reminder sent';
+    }
+    updateTask(taskName, taskDescription) {
+      this.taskDescription = taskDescription;
+      console.log('Task.updateTask: Task successfully updated'); return true;
+    }
+  }
+
+  // === Employee class (Employee.py) — checklist methods ===
+  class Employee {
+    constructor(userId) { this.userId = userId; }
+    viewTaskList(shiftId) { console.log(`Employee.viewTaskList: Viewing task list for shift ${shiftId}`); return true; }
+    markTaskComplete(taskId, status) { console.log(`Employee.markTaskComplete: Task ${taskId} marked ${status}`); return true; }
+    selectTask(checklistId) { console.log(`Employee.selectTask: Task ${checklistId} selected`); return true; }
+    recordTimeSpent(taskId, hours) {
+      const msg = `Recorded ${hours} hours for task ${taskId}`;
+      console.log('Employee.recordTimeSpent:', msg); return msg;
+    }
+  }
+
+  const empId   = parseInt(sessionStorage.getItem('emp_empId') || '1');
+  const empName = sessionStorage.getItem('emp_empName') || 'Employee';
+  document.getElementById('displayName').textContent = empName.split(' ')[0];
+  document.getElementById('ddFullName').textContent  = empName;
+  const currentEmployee = new Employee(empId);
+
+  const STATION_STYLE = {
+    'Kitchen':         { bg:'#fff7ed', color:'#c2410c' },
+    'Front of House':  { bg:'#eff6ff', color:'#1d4ed8' },
+    'Bar':             { bg:'#f5f3ff', color:'#6d28d9' },
+  };
+
+  // Week of Mar 29–Apr 4 — Tue–Sat only (Sun/Mon restaurant closed)
+  // Kitchen=Emily(3) | Bar=Michael(2) | FOH/Waiter=Sarah(1),James(4)  [Aiko on vacation]
+  const ALL_SHIFTS = [
+    { id:1,  day:'Tuesday',   date:'Mar 31', timeStr:'3:00 PM – 10:00 PM', station:'Kitchen',        empIds:[3]   },
+    { id:2,  day:'Tuesday',   date:'Mar 31', timeStr:'5:00 PM – 10:00 PM', station:'Front of House', empIds:[1,4] },
+    { id:3,  day:'Wednesday', date:'Apr 1',  timeStr:'3:00 PM – 10:00 PM', station:'Kitchen',        empIds:[3]   },
+    { id:4,  day:'Wednesday', date:'Apr 1',  timeStr:'3:00 PM – 10:00 PM', station:'Bar',            empIds:[2]   },
+    { id:5,  day:'Wednesday', date:'Apr 1',  timeStr:'11:00 AM – 4:00 PM', station:'Front of House', empIds:[4]   },
+    { id:6,  day:'Thursday',  date:'Apr 2',  timeStr:'3:00 PM – 10:00 PM', station:'Kitchen',        empIds:[3]   },
+    { id:7,  day:'Thursday',  date:'Apr 2',  timeStr:'4:00 PM – 9:00 PM',  station:'Front of House', empIds:[1,4] },
+    { id:8,  day:'Friday',    date:'Apr 3',  timeStr:'11:00 AM – 9:00 PM', station:'Kitchen',        empIds:[3]   },
+    { id:9,  day:'Friday',    date:'Apr 3',  timeStr:'4:00 PM – 11:00 PM', station:'Bar',            empIds:[2]   },
+    { id:10, day:'Friday',    date:'Apr 3',  timeStr:'11:00 AM – 9:00 PM', station:'Front of House', empIds:[1,4] },
+    { id:11, day:'Saturday',  date:'Apr 4',  timeStr:'12:00 PM – 9:00 PM', station:'Kitchen',        empIds:[3]   },
+    { id:12, day:'Saturday',  date:'Apr 4',  timeStr:'3:00 PM – 11:00 PM', station:'Bar',            empIds:[2]   },
+    { id:13, day:'Saturday',  date:'Apr 4',  timeStr:'12:00 PM – 9:00 PM', station:'Front of House', empIds:[1,4] },
+  ];
+
+  // Default/mock checklists for each shift (used if manager hasn't created one)
+  const DEFAULT_TASKS = {
+    'Kitchen':         ['Brief team on daily specials','Check inventory and report shortages','Ensure stations are cleaned and sanitized','Verify cold storage temps are logged','Complete end-of-shift cleaning duties'],
+    'Front of House':  ['Review reservations and seat assignments','Check uniforms and grooming standards','Brief on any VIP tables or allergies','Ensure menus are clean and current','Final walkthrough before open'],
+    'Bar':             ['Stock bar and verify garnishes','Check ice levels and refrigeration','Brief bar team on cocktail specials','Log opening inventory','Clean and organize before service'],
+  };
+
+  let MY_SHIFTS = ALL_SHIFTS.filter(s => s.empIds.includes(empId));
+  if (MY_SHIFTS.length === 0) {
+    MY_SHIFTS = ALL_SHIFTS.filter(s => s.station === 'Front of House');
+  }
+
+  // Load checklists (from manager page if available, else use defaults)
+  function getChecklist(shiftId) {
+    const saved = JSON.parse(sessionStorage.getItem('kaiji_checklists') || '{}');
+    if (saved[shiftId]) {
+      return saved[shiftId].tasks.map(t => ({ id: t.id, text: t.text }));
+    }
+    const shift    = ALL_SHIFTS.find(s => s.id === shiftId);
+    const defaults = DEFAULT_TASKS[shift?.station] || DEFAULT_TASKS['Kitchen'];
+    return defaults.map((text, i) => ({ id: i + 1, text }));
+  }
+
+  // Completion state: { [shiftId_taskId]: true }
+  let completions = JSON.parse(sessionStorage.getItem('kaiji_completions') || '{}');
+  // Time spent state (minutes): { [shiftId_taskId]: number }
+  let timeSpent   = JSON.parse(sessionStorage.getItem('kaiji_time_spent') || '{}');
+  let selectedShiftId = null;
+
+  function compKey(shiftId, taskId) { return `${shiftId}_${taskId}`; }
+  function timeKey(shiftId, taskId) { return `time_${shiftId}_${taskId}`; }
+
+  function getTotalMinutes(shiftId) {
+    return getChecklist(shiftId).reduce((sum, t) => sum + (timeSpent[timeKey(shiftId, t.id)] || 0), 0);
+  }
+  function fmtMinutes(m) {
+    if (!m) return '0 min';
+    const h = Math.floor(m / 60), mins = m % 60;
+    return h ? (mins ? `${h}h ${mins}m` : `${h}h`) : `${mins} min`;
+  }
+
+  function getProgress(shiftId) {
+    const tasks = getChecklist(shiftId);
+    if (!tasks.length) return { done: 0, total: 0 };
+    const done = tasks.filter(t => completions[compKey(shiftId, t.id)]).length;
+    return { done, total: tasks.length };
+  }
+
+  function buildShiftList() {
+    const container = document.getElementById('shiftList');
+    container.innerHTML = '';
+    let todayDone = 0;
+
+    MY_SHIFTS.forEach(sh => {
+      const sStyle   = STATION_STYLE[sh.station] || { bg:'#f3f4f6', color:'#374151' };
+      const { done, total } = getProgress(sh.id);
+      if (sh.date === 'Apr 3') todayDone += done;
+
+      let progCls = 'prog-none', progLbl = '0/' + total;
+      if (total > 0 && done === total) { progCls = 'prog-done'; progLbl = 'Done'; }
+      else if (done > 0) { progCls = 'prog-part'; progLbl = `${done}/${total}`; }
+      else progLbl = `0/${total}`;
+
+      const card = document.createElement('div');
+      card.className = 'shift-card' + (selectedShiftId === sh.id ? ' selected' : '');
+      card.onclick   = () => selectShift(sh.id);
+      card.innerHTML = `
+        <div class="sc-row1">
+          <span class="sc-day">${sh.day}</span>
+          <span class="sc-date">${sh.date}</span>
+        </div>
+        <div class="sc-time">${sh.timeStr}</div>
+        <div class="sc-row2">
+          <span class="station-pill" style="background:${sStyle.bg};color:${sStyle.color}">${sh.station}</span>
+          <span class="progress-pill ${progCls}">${progLbl}</span>
+        </div>`;
+      container.appendChild(card);
+    });
+
+    document.getElementById('doneCount').textContent = todayDone;
+  }
+
+  function selectShift(shiftId) {
+    selectedShiftId = shiftId;
+    // Employee.viewTaskList + selectTask (Employee.py)
+    currentEmployee.viewTaskList(shiftId);
+    currentEmployee.selectTask(shiftId);
+    buildShiftList();
+    renderEditor();
+  }
+
+  function renderEditor() {
+    if (!selectedShiftId) return;
+    const shift  = ALL_SHIFTS.find(s => s.id === selectedShiftId);
+    const tasks  = getChecklist(selectedShiftId);
+    const sStyle = STATION_STYLE[shift.station] || { bg:'#f3f4f6', color:'#374151' };
+    const { done, total } = getProgress(selectedShiftId);
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    // Task.viewChecklist (Checklist.py)
+    if (tasks.length > 0) {
+      const sampleTask = new Task(selectedShiftId, selectedShiftId, empId, tasks[0].text, '', 0);
+      sampleTask.viewChecklist();
+    }
+
+    document.getElementById('emptyState').style.display = 'none';
+    const editor = document.getElementById('editor');
+    editor.style.display = '';
+
+    const totalMins = getTotalMinutes(selectedShiftId);
+    let tasksHtml = '';
+    tasks.forEach((task, idx) => {
+      const isDone  = !!completions[compKey(selectedShiftId, task.id)];
+      const mins    = timeSpent[timeKey(selectedShiftId, task.id)] || '';
+      tasksHtml += `
+        <div class="task-item ${isDone ? 'done' : ''}" onclick="toggleTask(${task.id})">
+          <div class="task-checkbox">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <span class="task-num">${idx + 1}.</span>
+          <span class="task-text">${escHtml(task.text)}</span>
+          <div class="task-time" onclick="event.stopPropagation()">
+            <input type="number" class="task-time-input" min="0" max="480"
+                   placeholder="0" value="${mins}"
+                   onchange="saveTime(${task.id}, this.value)"
+                   oninput="saveTime(${task.id}, this.value)"
+                   title="Minutes spent on this task" />
+            <span class="task-time-label">min</span>
+          </div>
+        </div>`;
+    });
+
+    editor.innerHTML = `
+      <div class="sec-card">
+        <div class="shift-detail">
+          <div class="sd-icon" style="background:${sStyle.bg};">
+            <svg viewBox="0 0 24 24" stroke="${sStyle.color}" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div class="sd-info">
+            <div class="sd-name">${shift.day} · ${shift.date}</div>
+            <div class="sd-meta">${shift.timeStr}</div>
+          </div>
+          <div class="sd-badge">
+            <span class="station-pill" style="font-size:0.75rem;padding:4px 11px;background:${sStyle.bg};color:${sStyle.color}">${shift.station}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-card">
+        <div class="sec-head">
+          <h3>Tasks</h3>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span>${done} of ${total} completed</span>
+            ${totalMins > 0 ? `<span class="task-time-total">${fmtMinutes(totalMins)} logged</span>` : ''}
+          </div>
+        </div>
+        <div style="padding:14px 20px 4px;">
+          <div class="progress-wrap">
+            <div class="progress-label">
+              <span>Progress</span>
+              <span>${pct}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${pct}%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="sec-body">
+          <div class="task-list">${tasksHtml}</div>
+          ${tasks.length === 0 ? '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:0.84rem;">No tasks assigned for this shift.</div>' : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function toggleTask(taskId) {
+    const key = compKey(selectedShiftId, taskId);
+    const taskText = getChecklist(selectedShiftId).find(t => t.id === taskId)?.text || '';
+    const taskObj  = new Task(selectedShiftId, selectedShiftId, empId, taskText, '', 0);
+
+    if (completions[key]) {
+      delete completions[key];
+      // Task.markTaskComplete + Employee.markTaskComplete (Checklist.py / Employee.py)
+      taskObj.markTaskComplete(taskId, 'incomplete');
+      currentEmployee.markTaskComplete(taskId, 'incomplete');
+    } else {
+      completions[key] = true;
+      // Task.markTaskComplete + validateResponse + Employee.markTaskComplete
+      taskObj.markTaskComplete(taskId, 'complete');
+      taskObj.validateResponse(taskId);
+      currentEmployee.markTaskComplete(taskId, 'complete');
+      const taskMins = timeSpent[timeKey(selectedShiftId, taskId)] || 0;
+      currentEmployee.recordTimeSpent(taskId, (taskMins / 60).toFixed(2));
+    }
+    // Task.saveChecklist (Checklist.py)
+    taskObj.saveChecklist();
+
+    sessionStorage.setItem('kaiji_completions', JSON.stringify(completions));
+    buildShiftList();
+    renderEditor();
+    showToast('Progress saved!');
+  }
+
+  function saveTime(taskId, value) {
+    const mins = Math.max(0, parseInt(value) || 0);
+    timeSpent[timeKey(selectedShiftId, taskId)] = mins;
+    sessionStorage.setItem('kaiji_time_spent', JSON.stringify(timeSpent));
+    currentEmployee.recordTimeSpent(taskId, (mins / 60).toFixed(2));
+    buildShiftList();
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  buildShiftList();
+
+  function toggleNavMenu(e) {
+    e.stopPropagation();
+    document.getElementById('navDropdown').classList.toggle('open');
+  }
+  function logout() { sessionStorage.clear(); window.location.href = 'emp_login.html'; }
+  document.addEventListener('click', function() {
+    const dd = document.getElementById('navDropdown');
+    if (dd) dd.classList.remove('open');
+  });
+</script>
+</body>
+</html>

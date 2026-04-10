@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Schedule</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f5f6fa; display: flex; flex-direction: column;
+    }
+    nav {
+      display: flex; align-items: center; padding: 0 28px; height: 52px;
+      background: #fff; border-bottom: 1px solid #eaedf3; flex-shrink: 0; z-index: 10;
+    }
+    .nav-links { display: flex; align-items: center; gap: 2px; flex: 1; list-style: none; }
+    .nav-links a {
+      color: #555e7a; text-decoration: none; font-size: 0.82rem; font-weight: 600;
+      padding: 6px 10px; border-radius: 6px; white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover  { color: #1a2044; background: #f0f1f8; }
+    .nav-links a.active { color: #1a2044; background: #f0f1f8; }
+    .nav-user { display: flex; align-items: center; gap: 10px; flex-shrink: 0; position: relative; }
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%; background: #e8eaf6;
+      border: 1.5px solid #c5cae9; display: flex; align-items: center; justify-content: center; color: #5c6bc0;
+    }
+    .avatar svg { width: 16px; height: 16px; }
+    .user-name { font-size: 0.83rem; font-weight: 600; color: #1a2044; }
+    .menu-btn {
+      background: none; border: none; cursor: pointer; padding: 4px; color: #8892aa;
+      display: flex; align-items: center; border-radius: 4px; transition: color 0.15s, background 0.15s;
+    }
+    .menu-btn:hover { color: #1a2044; background: #f0f1f8; }
+    .menu-btn svg { width: 18px; height: 18px; }
+    .nav-dropdown {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      background: #fff; border: 1px solid #eaedf3; border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.13); min-width: 192px;
+      padding: 6px; z-index: 200;
+      opacity: 0; pointer-events: none; transform: translateY(-6px);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .nav-dropdown.open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .nav-dd-header { padding: 10px 12px 8px; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px; }
+    .nav-dd-header .dd-name { font-size: 0.83rem; font-weight: 700; color: #1a2044; }
+    .nav-dd-header .dd-sub  { font-size: 0.71rem; color: #9ca3af; margin-top: 1px; }
+    .nav-dd-item {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 8px 12px; border: none; background: none; border-radius: 7px;
+      font-size: 0.82rem; color: #374151; cursor: pointer; font-family: inherit; text-align: left;
+      transition: background 0.12s, color 0.12s;
+    }
+    .nav-dd-item:hover { background: #fef2f2; color: #dc2626; }
+    .nav-dd-item svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+    .page { flex: 1; padding: 28px 32px; max-width: 960px; width: 100%; margin: 0 auto; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Page header */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; border-radius: 14px; padding: 18px 22px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      margin-bottom: 20px;
+      animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .page-header-left { display: flex; align-items: center; gap: 14px; }
+    .icon-box {
+      width: 46px; height: 46px; border-radius: 12px; background: #3b82f6;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.3); flex-shrink: 0;
+    }
+    .icon-box svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .page-header-title h1 { font-size: 1.18rem; font-weight: 700; color: #1a2044; }
+    .page-header-title p  { font-size: 0.8rem; color: #8892aa; margin-top: 2px; }
+    .week-nav { display: flex; align-items: center; gap: 8px; }
+    .week-arrow {
+      width: 28px; height: 28px; border-radius: 7px; border: 1px solid #e5e7eb; background: #fff;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6b7280;
+      transition: background 0.12s, color 0.12s;
+    }
+    .week-arrow:hover { background: #f3f4f6; color: #1a2044; }
+    .week-arrow svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .week-label { font-size: 0.8rem; font-weight: 600; color: #374151; min-width: 200px; text-align: center; }
+
+    /* Stats */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px;
+      animation: fadeUp 0.4s 0.05s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .stat-card {
+      background: #fff; border-radius: 12px; padding: 16px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 14px;
+    }
+    .stat-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .stat-icon svg { width: 18px; height: 18px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .stat-val { font-size: 1.3rem; font-weight: 700; color: #1a2044; }
+    .stat-lbl { font-size: 0.73rem; color: #8892aa; margin-top: 1px; }
+
+    /* Cards */
+    .section-card {
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      overflow: hidden; margin-bottom: 20px;
+      animation: fadeUp 0.4s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .section-head {
+      padding: 14px 22px; border-bottom: 1px solid #f3f4f6;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .section-head h2  { font-size: 0.92rem; font-weight: 700; color: #1a2044; }
+    .section-head span { font-size: 0.75rem; color: #9ca3af; }
+
+    /* Shift table */
+    .shift-table { width: 100%; border-collapse: collapse; }
+    .shift-table th {
+      padding: 10px 18px; text-align: left;
+      font-size: 0.72rem; font-weight: 600; color: #6b7280;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      background: #f9fafb; border-bottom: 1px solid #f3f4f6;
+    }
+    .shift-table td {
+      padding: 14px 18px; border-bottom: 1px solid #f3f4f6;
+      font-size: 0.85rem; color: #374151; vertical-align: middle;
+    }
+    .shift-table tr:last-child td { border-bottom: none; }
+    .shift-table tr:hover td { background: #fafafa; }
+    .shift-table tr.past-shift td { opacity: 0.55; }
+
+    .day-cell { font-weight: 600; color: #1a2044; }
+    .day-cell .date { font-size: 0.73rem; color: #9ca3af; font-weight: 400; }
+    .today-chip {
+      display: inline-block; font-size: 0.6rem; font-weight: 700;
+      background: #3b82f6; color: #fff; padding: 1px 6px;
+      border-radius: 20px; margin-left: 6px; vertical-align: middle;
+    }
+
+    .station-pill {
+      font-size: 0.7rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; display: inline-block;
+    }
+    .st-kitchen   { background: #fff7ed; color: #c2410c; }
+    .st-foh       { background: #eff6ff; color: #1d4ed8; }
+    .st-bar       { background: #f5f3ff; color: #6d28d9; }
+
+    .coworkers { display: flex; gap: 4px; flex-wrap: wrap; }
+    .cw-chip {
+      font-size: 0.7rem; padding: 2px 8px; border-radius: 20px;
+      background: #f3f4f6; color: #6b7280;
+    }
+
+    .status-badge {
+      font-size: 0.7rem; font-weight: 600; padding: 3px 10px;
+      border-radius: 20px; white-space: nowrap; display: inline-block;
+    }
+    .s-pending   { background: #fffbeb; color: #92400e; }
+    .s-confirmed { background: #dcfce7; color: #15803d; }
+    .s-swap-req  { background: #fff7ed; color: #c2410c; }
+    .s-swap-pend { background: #fef3c7; color: #92400e; }
+    .s-past      { background: #f3f4f6; color: #9ca3af; }
+
+    .actions-cell { display: flex; gap: 6px; }
+    .btn-confirm {
+      padding: 6px 14px; border: none; border-radius: 7px;
+      background: #0d9488; color: #fff; font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; transition: filter 0.15s;
+    }
+    .btn-confirm:hover { filter: brightness(1.07); }
+    .btn-swap {
+      padding: 6px 14px; border: 1px solid #e5e7eb; border-radius: 7px;
+      background: #fff; color: #6b7280; font-size: 0.78rem; font-weight: 500;
+      cursor: pointer; transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .btn-swap:hover { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
+
+    /* Available shifts */
+    .avail-empty {
+      padding: 32px; text-align: center; color: #b0b8cc;
+      font-size: 0.84rem;
+    }
+    .avail-empty svg { width: 36px; height: 36px; stroke: #d1d8e8; fill: none; stroke-width: 1.5; display: block; margin: 0 auto 10px; }
+
+    /* Overlays */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,20,50,0.45); backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: #fff; border-radius: 16px; max-width: 440px; width: calc(100% - 40px);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.2); padding: 32px;
+      transform: translateY(14px); transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+    }
+    .overlay.open .modal-box { transform: translateY(0); }
+
+    .modal-icon {
+      width: 52px; height: 52px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;
+    }
+    .modal-icon svg { width: 26px; height: 26px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; color: #111827; text-align: center; margin-bottom: 6px; }
+    .modal-sub   { font-size: 0.83rem; color: #6b7280; text-align: center; margin-bottom: 20px; line-height: 1.55; }
+
+    .modal-detail {
+      background: #f9fafb; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;
+    }
+    .md-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.82rem; padding: 4px 0;
+    }
+    .md-row:not(:last-child) { border-bottom: 1px solid #f3f4f6; }
+    .md-row .lbl { color: #6b7280; }
+    .md-row .val { font-weight: 600; color: #1a2044; }
+
+    .swap-reason {
+      width: 100%; padding: 10px 13px; border: 1px solid #e5e7eb; border-radius: 8px;
+      font-size: 0.85rem; color: #374151; font-family: inherit; outline: none;
+      resize: none; min-height: 80px; margin-bottom: 20px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .swap-reason:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+    .swap-reason::placeholder { color: #c4c9d4; }
+
+    .modal-actions { display: flex; gap: 10px; }
+    .btn-back {
+      flex: 1; padding: 11px; border: 1px solid #e5e7eb; border-radius: 50px;
+      background: #fff; color: #6b7280; font-size: 0.88rem; font-weight: 500; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-back:hover { background: #f9fafb; }
+    .btn-action {
+      flex: 2; padding: 11px; border: none; border-radius: 50px;
+      font-size: 0.88rem; font-weight: 600; cursor: pointer;
+      transition: filter 0.15s;
+    }
+    .btn-teal   { background: #0d9488; color: #fff; box-shadow: 0 4px 12px rgba(13,148,136,0.3); }
+    .btn-teal:hover { filter: brightness(1.07); }
+    .btn-orange { background: #f97316; color: #fff; box-shadow: 0 4px 12px rgba(249,115,22,0.3); }
+    .btn-orange:hover { filter: brightness(1.07); }
+
+    /* Success modal */
+    .success-circle {
+      width: 64px; height: 64px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;
+    }
+    .success-circle svg { width: 30px; height: 30px; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .btn-done {
+      display: block; width: 160px; margin: 0 auto;
+      padding: 11px; border: none; border-radius: 50px;
+      font-size: 0.92rem; font-weight: 600; cursor: pointer; transition: filter 0.15s;
+    }
+    .btn-done:hover { filter: brightness(1.07); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <ul class="nav-links">
+    <li><a href="emp_home.html">Home</a></li>
+    <li><a href="emp_schedule.html" class="active">Schedule</a></li>
+    <li><a href="emp_availability.html">Availability</a></li>
+    <li><a href="emp_timesheet.html">Timesheet</a></li>
+    <li><a href="emp_checklist.html">Checklist</a></li>
+    <li><a href="emp_notifications.html">Notifications</a></li>
+    <li><a href="emp_incident.html">Incident Form</a></li>
+  </ul>
+  <div class="nav-user">
+    <div class="avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+    </div>
+    <span class="user-name" id="displayName">Employee</span>
+    <button class="menu-btn" id="menuBtn" onclick="toggleNavMenu(event)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+      </svg>
+    </button>
+    <div class="nav-dropdown" id="navDropdown">
+      <div class="nav-dd-header">
+        <div class="dd-name" id="ddFullName">Employee</div>
+        <div class="dd-sub">Employee Portal</div>
+      </div>
+      <button class="nav-dd-item" onclick="logout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log Out
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <div class="page-header-title">
+        <h1>My Schedule</h1>
+        <p>View assigned shifts, confirm availability, and request swaps</p>
+      </div>
+    </div>
+    <div class="week-nav">
+      <button class="week-arrow" onclick="changeWeek(-1)">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="week-label" id="weekLabel"></span>
+      <button class="week-arrow" onclick="changeWeek(1)">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;">
+        <svg viewBox="0 0 24 24" stroke="#3b82f6">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <div><div class="stat-val" id="statTotal">–</div><div class="stat-lbl">Shifts This Week</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#dcfce7;">
+        <svg viewBox="0 0 24 24" stroke="#16a34a">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div><div class="stat-val" id="statConfirmed">–</div><div class="stat-lbl">Completed</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;">
+        <svg viewBox="0 0 24 24" stroke="#3b82f6">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <div><div class="stat-val" id="statPending">–</div><div class="stat-lbl">Upcoming</div></div>
+    </div>
+  </div>
+
+  <!-- My Shifts -->
+  <div class="section-card">
+    <div class="section-head">
+      <h2>My Shifts</h2>
+      <span id="shiftsSub"></span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="shift-table">
+        <thead>
+          <tr>
+            <th>Day</th>
+            <th>Time</th>
+            <th>Station</th>
+            <th>Coworkers</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="myShiftsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Available Shifts (swap requests) -->
+  <div class="section-card" style="animation-delay:0.15s;">
+    <div class="section-head">
+      <h2>Available Shifts</h2>
+      <span>Shifts put up for swap by coworkers</span>
+    </div>
+    <div id="availShiftsArea">
+      <div class="avail-empty">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        No available shifts right now
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Confirm Shift Modal -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal-box">
+    <div class="modal-icon" style="background:#dcfce7;">
+      <svg viewBox="0 0 24 24" stroke="#16a34a"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="modal-title">Confirm Your Shift</div>
+    <div class="modal-sub">You're confirming you will be available and present for this shift.</div>
+    <div class="modal-detail" id="confirmDetail"></div>
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeAll()">Cancel</button>
+      <button class="btn-action btn-teal" onclick="doConfirm()">Yes, I'll Be There</button>
+    </div>
+  </div>
+</div>
+
+<!-- Swap Request Modal -->
+<div class="overlay" id="swapOverlay">
+  <div class="modal-box">
+    <div class="modal-icon" style="background:#fff7ed;">
+      <svg viewBox="0 0 24 24" stroke="#f97316">
+        <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+    </div>
+    <div class="modal-title">Request Shift Swap</div>
+    <div class="modal-sub">Your shift will be listed as available. Other employees can claim it — but a manager must approve the final swap.</div>
+    <div class="modal-detail" id="swapDetail"></div>
+    <textarea class="swap-reason" id="swapReason" placeholder="Optional: reason for the swap request (e.g. medical appointment, family event…)"></textarea>
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeAll()">Cancel</button>
+      <button class="btn-action btn-orange" onclick="doSwapRequest()">Submit Swap Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Claim Shift Modal -->
+<div class="overlay" id="claimOverlay">
+  <div class="modal-box">
+    <div class="modal-icon" style="background:#eff6ff;">
+      <svg viewBox="0 0 24 24" stroke="#3b82f6">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+        <polyline points="16 11 17 13 21 13" style="display:none"/>
+      </svg>
+    </div>
+    <div class="modal-title">Claim This Shift</div>
+    <div class="modal-sub">You're requesting to take over this shift. Your claim will be sent to the manager for approval.</div>
+    <div class="modal-detail" id="claimDetail"></div>
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeAll()">Cancel</button>
+      <button class="btn-action btn-teal" onclick="doClaim()">Claim Shift</button>
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div class="overlay" id="successOverlay">
+  <div class="modal-box" style="text-align:center;">
+    <div class="success-circle" id="successCircle"></div>
+    <div class="modal-title" id="successTitle"></div>
+    <div class="modal-sub" id="successMsg"></div>
+    <button class="btn-done" id="successDoneBtn" onclick="closeAll()">Done</button>
+  </div>
+</div>
+
+<script>
+  // === Employee class (Employee.py) ===
+  class Employee {
+    constructor(userId, firstName, lastName, department, employmentStatus) {
+      this.userId = userId; this.firstName = firstName; this.lastName = lastName;
+      this.department = department; this.employmentStatus = employmentStatus;
+    }
+    selectScheduleTab()     { console.log('Employee.selectScheduleTab: Schedule tab selected'); return true; }
+    viewSchedule(scheduleId){ console.log(`Employee.viewSchedule: Viewing schedule ${scheduleId}`); return scheduleId; }
+    confirmSchedule(shiftId){ console.log(`Employee.confirmSchedule: Shift ${shiftId} confirmed`); return true; }
+    giveAwayShift(shiftId, scheduleId) { console.log(`Employee.giveAwayShift: Shift ${shiftId} given away`); return true; }
+    takeAvailableShift(shiftId, scheduleId) { console.log(`Employee.takeAvailableShift: Shift ${shiftId} taken`); return true; }
+  }
+
+  // === Schedule class (Schedule.py) ===
+  class Schedule {
+    constructor(scheduleId, weekStartDate, weekEndDate, scheduleStatus, departmentId, totalEmployeesPerDay) {
+      this.scheduleId = scheduleId; this.weekStartDate = weekStartDate;
+      this.weekEndDate = weekEndDate; this.scheduleStatus = scheduleStatus;
+      this.departmentId = departmentId; this.totalEmployeesPerDay = totalEmployeesPerDay;
+    }
+    validatesShiftCoverage() {
+      if (this.totalEmployeesPerDay > 0) {
+        console.log('Schedule.validatesShiftCoverage: Shift coverage valid'); return true;
+      }
+      console.log('Schedule.validatesShiftCoverage: Shift coverage invalid'); return false;
+    }
+    updateSchedule(employeeId, shiftId) {
+      console.log(`Schedule.updateSchedule: Updated with employee ${employeeId} and shift ${shiftId}`); return true;
+    }
+    getTotalHoursScheduled() {
+      const totalHours = this.totalEmployeesPerDay * 8;
+      console.log('Schedule.getTotalHoursScheduled: Total hours:', totalHours); return totalHours;
+    }
+  }
+
+  const empId   = parseInt(sessionStorage.getItem('emp_empId') || '1');
+  const empName = sessionStorage.getItem('emp_empName') || 'Employee';
+  document.getElementById('displayName').textContent = empName.split(' ')[0];
+  document.getElementById('ddFullName').textContent  = empName;
+  const currentEmployee = new Employee(empId, empName.split(' ')[0], empName.split(' ')[1] || '', 'Front of House', 'Full-time');
+  currentEmployee.selectScheduleTab();
+
+  const EMPLOYEES = [
+    { id:1, name:'Sarah Johnson',  color:'#3b82f6' },
+    { id:2, name:'Michael Chen',   color:'#f59e0b' },
+    { id:3, name:'Emily Davis',    color:'#10b981' },
+    { id:4, name:'James Wilson',   color:'#8b5cf6' },
+    { id:5, name:'Aiko Tanaka',    color:'#ef4444' },
+  ];
+
+  const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Department assignments: Kitchen=Emily(3) | Bar=Michael(2) | FOH/Waiter=Sarah(1),James(4),Aiko(5)
+  // Restaurant closed Sun & Mon — shifts run Tue–Sat only
+  const WEEKS = {
+    '-2': [
+      // Week of Mar 15–21
+      { id:801, day:2, dayName:'Tuesday',   date:'Mar 17', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:802, day:2, dayName:'Tuesday',   date:'Mar 17', start:'5:00 PM',  end:'10:00 PM', station:'Front of House', empIds:[1,4,5] },
+      { id:803, day:3, dayName:'Wednesday', date:'Mar 18', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:804, day:3, dayName:'Wednesday', date:'Mar 18', start:'3:00 PM',  end:'10:00 PM', station:'Bar',            empIds:[2]     },
+      { id:805, day:3, dayName:'Wednesday', date:'Mar 18', start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:806, day:4, dayName:'Thursday',  date:'Mar 19', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:807, day:4, dayName:'Thursday',  date:'Mar 19', start:'4:00 PM',  end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:808, day:5, dayName:'Friday',    date:'Mar 20', start:'11:00 AM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]     },
+      { id:809, day:5, dayName:'Friday',    date:'Mar 20', start:'4:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]     },
+      { id:810, day:5, dayName:'Friday',    date:'Mar 20', start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:811, day:6, dayName:'Saturday',  date:'Mar 21', start:'12:00 PM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]     },
+      { id:812, day:6, dayName:'Saturday',  date:'Mar 21', start:'3:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]     },
+      { id:813, day:6, dayName:'Saturday',  date:'Mar 21', start:'12:00 PM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+    ],
+    '-1': [
+      // Week of Mar 22–28
+      { id:701, day:2, dayName:'Tuesday',   date:'Mar 24', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:702, day:2, dayName:'Tuesday',   date:'Mar 24', start:'5:00 PM',  end:'10:00 PM', station:'Front of House', empIds:[1,4,5] },
+      { id:703, day:3, dayName:'Wednesday', date:'Mar 25', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:704, day:3, dayName:'Wednesday', date:'Mar 25', start:'3:00 PM',  end:'10:00 PM', station:'Bar',            empIds:[2]     },
+      { id:705, day:3, dayName:'Wednesday', date:'Mar 25', start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:706, day:4, dayName:'Thursday',  date:'Mar 26', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:707, day:4, dayName:'Thursday',  date:'Mar 26', start:'4:00 PM',  end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:708, day:5, dayName:'Friday',    date:'Mar 27', start:'11:00 AM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]     },
+      { id:709, day:5, dayName:'Friday',    date:'Mar 27', start:'4:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]     },
+      { id:710, day:5, dayName:'Friday',    date:'Mar 27', start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:711, day:6, dayName:'Saturday',  date:'Mar 28', start:'12:00 PM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]     },
+      { id:712, day:6, dayName:'Saturday',  date:'Mar 28', start:'3:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]     },
+      { id:713, day:6, dayName:'Saturday',  date:'Mar 28', start:'12:00 PM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+    ],
+    '0': [
+      // Week of Mar 29–Apr 4  (Aiko on vacation — Sarah & James cover FOH)
+      { id:1,  day:2, dayName:'Tuesday',   date:'Mar 31', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]   },
+      { id:2,  day:2, dayName:'Tuesday',   date:'Mar 31', start:'5:00 PM',  end:'10:00 PM', station:'Front of House', empIds:[1,4] },
+      { id:3,  day:3, dayName:'Wednesday', date:'Apr 1',  start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]   },
+      { id:4,  day:3, dayName:'Wednesday', date:'Apr 1',  start:'3:00 PM',  end:'10:00 PM', station:'Bar',            empIds:[2]   },
+      { id:5,  day:3, dayName:'Wednesday', date:'Apr 1',  start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4] },
+      { id:6,  day:4, dayName:'Thursday',  date:'Apr 2',  start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]   },
+      { id:7,  day:4, dayName:'Thursday',  date:'Apr 2',  start:'4:00 PM',  end:'9:00 PM',  station:'Front of House', empIds:[1,4] },
+      { id:8,  day:5, dayName:'Friday',    date:'Apr 3',  start:'11:00 AM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]   },
+      { id:9,  day:5, dayName:'Friday',    date:'Apr 3',  start:'4:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]   },
+      { id:10, day:5, dayName:'Friday',    date:'Apr 3',  start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4] },
+      { id:11, day:6, dayName:'Saturday',  date:'Apr 4',  start:'12:00 PM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]   },
+      { id:12, day:6, dayName:'Saturday',  date:'Apr 4',  start:'3:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]   },
+      { id:13, day:6, dayName:'Saturday',  date:'Apr 4',  start:'12:00 PM', end:'9:00 PM',  station:'Front of House', empIds:[1,4] },
+    ],
+    '1': [
+      // Week of Apr 5–11  (Aiko returns)
+      { id:101, day:2, dayName:'Tuesday',   date:'Apr 7',  start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:102, day:2, dayName:'Tuesday',   date:'Apr 7',  start:'5:00 PM',  end:'10:00 PM', station:'Front of House', empIds:[1,4,5] },
+      { id:103, day:3, dayName:'Wednesday', date:'Apr 8',  start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:104, day:3, dayName:'Wednesday', date:'Apr 8',  start:'3:00 PM',  end:'10:00 PM', station:'Bar',            empIds:[2]     },
+      { id:105, day:3, dayName:'Wednesday', date:'Apr 8',  start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:106, day:4, dayName:'Thursday',  date:'Apr 9',  start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:107, day:4, dayName:'Thursday',  date:'Apr 9',  start:'4:00 PM',  end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:108, day:5, dayName:'Friday',    date:'Apr 10', start:'11:00 AM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]     },
+      { id:109, day:5, dayName:'Friday',    date:'Apr 10', start:'4:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]     },
+      { id:110, day:5, dayName:'Friday',    date:'Apr 10', start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:111, day:6, dayName:'Saturday',  date:'Apr 11', start:'12:00 PM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]     },
+      { id:112, day:6, dayName:'Saturday',  date:'Apr 11', start:'3:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]     },
+      { id:113, day:6, dayName:'Saturday',  date:'Apr 11', start:'12:00 PM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+    ],
+    '2': [
+      // Week of Apr 12–18
+      { id:201, day:2, dayName:'Tuesday',   date:'Apr 14', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:202, day:2, dayName:'Tuesday',   date:'Apr 14', start:'5:00 PM',  end:'10:00 PM', station:'Front of House', empIds:[1,4,5] },
+      { id:203, day:3, dayName:'Wednesday', date:'Apr 15', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:204, day:3, dayName:'Wednesday', date:'Apr 15', start:'3:00 PM',  end:'10:00 PM', station:'Bar',            empIds:[2]     },
+      { id:205, day:3, dayName:'Wednesday', date:'Apr 15', start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:206, day:4, dayName:'Thursday',  date:'Apr 16', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:207, day:4, dayName:'Thursday',  date:'Apr 16', start:'4:00 PM',  end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:208, day:5, dayName:'Friday',    date:'Apr 17', start:'11:00 AM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]     },
+      { id:209, day:5, dayName:'Friday',    date:'Apr 17', start:'4:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]     },
+      { id:210, day:5, dayName:'Friday',    date:'Apr 17', start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:211, day:6, dayName:'Saturday',  date:'Apr 18', start:'12:00 PM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]     },
+      { id:212, day:6, dayName:'Saturday',  date:'Apr 18', start:'3:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]     },
+      { id:213, day:6, dayName:'Saturday',  date:'Apr 18', start:'12:00 PM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+    ],
+    '3': [
+      // Week of Apr 19–25
+      { id:301, day:2, dayName:'Tuesday',   date:'Apr 21', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:302, day:2, dayName:'Tuesday',   date:'Apr 21', start:'5:00 PM',  end:'10:00 PM', station:'Front of House', empIds:[1,4,5] },
+      { id:303, day:3, dayName:'Wednesday', date:'Apr 22', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:304, day:3, dayName:'Wednesday', date:'Apr 22', start:'3:00 PM',  end:'10:00 PM', station:'Bar',            empIds:[2]     },
+      { id:305, day:3, dayName:'Wednesday', date:'Apr 22', start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:306, day:4, dayName:'Thursday',  date:'Apr 23', start:'3:00 PM',  end:'10:00 PM', station:'Kitchen',        empIds:[3]     },
+      { id:307, day:4, dayName:'Thursday',  date:'Apr 23', start:'4:00 PM',  end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:308, day:5, dayName:'Friday',    date:'Apr 24', start:'11:00 AM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]     },
+      { id:309, day:5, dayName:'Friday',    date:'Apr 24', start:'4:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]     },
+      { id:310, day:5, dayName:'Friday',    date:'Apr 24', start:'11:00 AM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+      { id:311, day:6, dayName:'Saturday',  date:'Apr 25', start:'12:00 PM', end:'9:00 PM',  station:'Kitchen',        empIds:[3]     },
+      { id:312, day:6, dayName:'Saturday',  date:'Apr 25', start:'3:00 PM',  end:'11:00 PM', station:'Bar',            empIds:[2]     },
+      { id:313, day:6, dayName:'Saturday',  date:'Apr 25', start:'12:00 PM', end:'9:00 PM',  station:'Front of House', empIds:[1,4,5] },
+    ],
+  };
+
+  // Day index to mark as past (today = day 5, Friday Apr 3)
+  const TODAY_DAY = 5; // 0=Sun … 6=Sat
+  let weekOffset  = 0;
+
+  // State
+  let confirmations = JSON.parse(sessionStorage.getItem('kaiji_confirmations') || '{}');
+  let swapRequests  = JSON.parse(sessionStorage.getItem('kaiji_swap_requests')  || '[]');
+  let nextSwapId    = swapRequests.reduce((m,r) => Math.max(m, r.id), 0) + 1;
+
+  // Working shift context for modals
+  let activeShiftId = null;
+
+  // — Week label —
+  function getWeekDates(offset) {
+    const today = new Date(2026, 2, 29); // Sun Mar 29, 2026 (week start)
+    today.setDate(today.getDate() + offset * 7);
+    const end = new Date(today); end.setDate(end.getDate() + 6);
+    const fmt = d => `${MONTH_ABBR[d.getMonth()]} ${d.getDate()}`;
+    return `${fmt(today)} – ${fmt(end)}, ${end.getFullYear()}`;
+  }
+
+  function changeWeek(dir) { weekOffset += dir; render(); }
+
+  function getShiftsForWeek() {
+    return (WEEKS[weekOffset] || []);
+  }
+
+  function getMyShifts() {
+    const mine = getShiftsForWeek().filter(s => s.empIds.includes(empId));
+    if (mine.length > 0) return mine;
+    // Any registered user gets the FOH/Waiter shifts
+    return getShiftsForWeek().filter(s => s.station === 'Front of House');
+  }
+
+  function isPast(shift) {
+    if (weekOffset < 0) return true;
+    if (weekOffset > 0) return false;
+    return shift.day < TODAY_DAY;
+  }
+
+  function isToday(shift) { return weekOffset === 0 && shift.day === TODAY_DAY; }
+
+  function getSwapStatus(shiftId) {
+    const req = swapRequests.find(r => r.shiftId === shiftId);
+    if (!req) return null;
+    return req;
+  }
+
+  function stationClass(station) {
+    if (station === 'Kitchen')        return 'st-kitchen';
+    if (station === 'Front of House') return 'st-foh';
+    if (station === 'Bar')            return 'st-bar';
+    return '';
+  }
+
+  function detailHtml(shift) {
+    return `
+      <div class="md-row"><span class="lbl">Day</span><span class="val">${shift.dayName}, ${shift.date}</span></div>
+      <div class="md-row"><span class="lbl">Time</span><span class="val">${shift.start} – ${shift.end}</span></div>
+      <div class="md-row"><span class="lbl">Station</span><span class="val">${shift.station}</span></div>
+    `;
+  }
+
+  function render() {
+    document.getElementById('weekLabel').textContent = getWeekDates(weekOffset);
+
+    const myShifts  = getMyShifts();
+    const allShifts = getShiftsForWeek();
+
+    // Employee.viewSchedule (Employee.py)
+    currentEmployee.viewSchedule(weekOffset);
+
+    // Schedule.validatesShiftCoverage (Schedule.py)
+    const weekSchedule = new Schedule(weekOffset, getWeekDates(weekOffset).split('–')[0].trim(), getWeekDates(weekOffset).split('–')[1]?.trim() || '', 'published', 1, myShifts.length);
+    weekSchedule.validatesShiftCoverage();
+
+    // Stats
+    const completed = myShifts.filter(s => isPast(s)).length;
+    const upcoming  = myShifts.filter(s => !isPast(s)).length;
+    document.getElementById('statTotal').textContent     = myShifts.length;
+    document.getElementById('statConfirmed').textContent = completed;
+    document.getElementById('statPending').textContent   = upcoming;
+    document.getElementById('shiftsSub').textContent    = `${myShifts.length} shift${myShifts.length !== 1 ? 's' : ''} assigned`;
+
+    // My shifts table
+    const tbody = document.getElementById('myShiftsBody');
+    tbody.innerHTML = '';
+
+    if (myShifts.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:#9ca3af;font-size:0.84rem;">No shifts scheduled for this week.</td></tr>`;
+    } else {
+      myShifts.forEach(shift => {
+        const past    = isPast(shift);
+        const today   = isToday(shift);
+        const swapReq = getSwapStatus(shift.id);
+        const conf    = confirmations[shift.id];
+
+        let statusCls, statusLbl;
+        if (past) { statusCls = 's-past'; statusLbl = 'Past'; }
+        else if (swapReq?.status === 'open')             { statusCls = 's-swap-req';  statusLbl = 'Swap Requested'; }
+        else if (swapReq?.status === 'pending_approval') { statusCls = 's-swap-pend'; statusLbl = 'Swap Pending Approval'; }
+        else                                             { statusCls = 's-confirmed'; statusLbl = 'Confirmed'; }
+
+        const coworkers = shift.empIds
+          .filter(id => id !== empId)
+          .map(id => { const e = EMPLOYEES.find(x => x.id === id); return e ? `<span class="cw-chip">${e.name.split(' ')[0]}</span>` : ''; })
+          .join('');
+
+        const todayChip = today ? `<span class="today-chip">TODAY</span>` : '';
+
+        let actionsHtml = '';
+        if (!past && !swapReq) {
+          actionsHtml = `<button class="btn-swap" onclick="openSwapModal(${shift.id})">Request Swap</button>`;
+        } else if (swapReq?.status === 'open') {
+          actionsHtml = `<span style="font-size:0.75rem;color:#9ca3af;font-style:italic;">Awaiting a claim…</span>`;
+        } else if (swapReq?.status === 'pending_approval') {
+          actionsHtml = `<span style="font-size:0.75rem;color:#9ca3af;font-style:italic;">Pending manager approval</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        if (past) tr.classList.add('past-shift');
+        tr.innerHTML = `
+          <td class="day-cell">${shift.dayName}${todayChip}<br><span class="date">${shift.date}</span></td>
+          <td>${shift.start} – ${shift.end}</td>
+          <td><span class="station-pill ${stationClass(shift.station)}">${shift.station}</span></td>
+          <td><div class="coworkers">${coworkers || '<span style="color:#c4c9d4;font-size:0.78rem;">Solo</span>'}</div></td>
+          <td><span class="status-badge ${statusCls}">${statusLbl}</span></td>
+          <td><div class="actions-cell">${actionsHtml}</div></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Available shifts
+    renderAvailable(allShifts);
+  }
+
+  function renderAvailable(allShifts) {
+    const area = document.getElementById('availShiftsArea');
+    // Shifts put up for swap by others (not me), that are open
+    const available = swapRequests.filter(r => r.requestingEmpId !== empId && r.status === 'open' && r.weekOffset === weekOffset);
+
+    if (available.length === 0) {
+      area.innerHTML = `
+        <div class="avail-empty">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          No shifts available for swap this week
+        </div>`;
+      return;
+    }
+
+    // Build table for available shifts
+    let html = `<div style="overflow-x:auto;"><table class="shift-table">
+      <thead><tr>
+        <th>Day</th><th>Time</th><th>Station</th><th>Original Employee</th><th>Reason</th><th>Action</th>
+      </tr></thead><tbody>`;
+
+    available.forEach(req => {
+      const shift = allShifts.find(s => s.id === req.shiftId);
+      if (!shift) return;
+      const orig = EMPLOYEES.find(e => e.id === req.requestingEmpId);
+      const alreadyClaimed = req.claimingEmpId === empId;
+      html += `<tr>
+        <td class="day-cell">${shift.dayName}<br><span class="date">${shift.date}</span></td>
+        <td>${shift.start} – ${shift.end}</td>
+        <td><span class="station-pill ${stationClass(shift.station)}">${shift.station}</span></td>
+        <td>${orig ? orig.name : '—'}</td>
+        <td style="font-size:0.78rem;color:#6b7280;font-style:italic;">${req.reason || '—'}</td>
+        <td>
+          ${alreadyClaimed
+            ? `<span style="font-size:0.75rem;color:#9ca3af;">Claim submitted</span>`
+            : `<button class="btn-confirm" onclick="openClaimModal(${req.id})">Claim Shift</button>`}
+        </td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    area.innerHTML = html;
+  }
+
+  // — Modals —
+  function openConfirmModal(shiftId) {
+    activeShiftId = shiftId;
+    const shift = getShiftsForWeek().find(s => s.id === shiftId);
+    document.getElementById('confirmDetail').innerHTML = detailHtml(shift);
+    document.getElementById('confirmOverlay').classList.add('open');
+  }
+
+  function openSwapModal(shiftId) {
+    activeShiftId = shiftId;
+    const shift = getShiftsForWeek().find(s => s.id === shiftId);
+    document.getElementById('swapDetail').innerHTML = detailHtml(shift);
+    document.getElementById('swapReason').value = '';
+    document.getElementById('swapOverlay').classList.add('open');
+  }
+
+  function openClaimModal(reqId) {
+    activeShiftId = reqId; // using reqId here
+    const req   = swapRequests.find(r => r.id === reqId);
+    const shift = getShiftsForWeek().find(s => s.id === req.shiftId);
+    const orig  = EMPLOYEES.find(e => e.id === req.requestingEmpId);
+    document.getElementById('claimDetail').innerHTML = detailHtml(shift) +
+      `<div class="md-row"><span class="lbl">Original Employee</span><span class="val">${orig ? orig.name : '—'}</span></div>`;
+    document.getElementById('claimOverlay').classList.add('open');
+  }
+
+  function closeAll() {
+    ['confirmOverlay','swapOverlay','claimOverlay','successOverlay'].forEach(id =>
+      document.getElementById(id).classList.remove('open')
+    );
+    activeShiftId = null;
+  }
+
+  function doConfirm() {
+    // Employee.confirmSchedule (Employee.py)
+    currentEmployee.confirmSchedule(activeShiftId);
+    confirmations[activeShiftId] = 'confirmed';
+    sessionStorage.setItem('kaiji_confirmations', JSON.stringify(confirmations));
+    showSuccess(
+      '#dcfce7', '#16a34a',
+      'Shift Confirmed!',
+      "You're all set. Your manager has been notified of your confirmation.",
+      '#0d9488'
+    );
+  }
+
+  function doSwapRequest() {
+    const reason = document.getElementById('swapReason').value.trim();
+    // Employee.giveAwayShift (Employee.py)
+    currentEmployee.giveAwayShift(activeShiftId, weekOffset);
+    // Schedule.updateSchedule (Schedule.py)
+    const swapSchedule = new Schedule(weekOffset, '', '', 'published', 1, getMyShifts().length);
+    swapSchedule.updateSchedule(empId, activeShiftId);
+    swapRequests.push({
+      id: nextSwapId++,
+      shiftId: activeShiftId,
+      requestingEmpId: empId,
+      claimingEmpId: null,
+      status: 'open',
+      reason,
+      weekOffset,
+      timestamp: Date.now(),
+    });
+    sessionStorage.setItem('kaiji_swap_requests', JSON.stringify(swapRequests));
+    document.getElementById('swapOverlay').classList.remove('open');
+    showSuccess(
+      '#fff7ed', '#f97316',
+      'Swap Request Submitted',
+      "Your shift is now listed as available. You'll be notified once a coworker claims it and the manager approves.",
+      '#f97316'
+    );
+  }
+
+  function doClaim() {
+    // activeShiftId is actually reqId here
+    const req = swapRequests.find(r => r.id === activeShiftId);
+    if (req) {
+      // Employee.takeAvailableShift (Employee.py)
+      currentEmployee.takeAvailableShift(req.shiftId, weekOffset);
+      req.claimingEmpId = empId;
+      req.status = 'pending_approval';
+      sessionStorage.setItem('kaiji_swap_requests', JSON.stringify(swapRequests));
+    }
+    document.getElementById('claimOverlay').classList.remove('open');
+    showSuccess(
+      '#eff6ff', '#3b82f6',
+      'Claim Submitted!',
+      "Your request to take this shift has been sent to the manager for approval. You'll be notified of their decision.",
+      '#3b82f6'
+    );
+  }
+
+  function showSuccess(bgColor, strokeColor, title, msg, btnColor) {
+    document.getElementById('successCircle').style.background = bgColor;
+    document.getElementById('successCircle').innerHTML =
+      `<svg viewBox="0 0 24 24" style="width:30px;height:30px;stroke:${strokeColor};fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;"><polyline points="20 6 9 17 4 12"/></svg>`;
+    document.getElementById('successTitle').textContent = title;
+    document.getElementById('successMsg').textContent   = msg;
+    document.getElementById('successDoneBtn').style.background = btnColor;
+    document.getElementById('successDoneBtn').style.color = '#fff';
+    document.getElementById('successOverlay').classList.add('open');
+
+    // Close other overlays
+    ['confirmOverlay','swapOverlay','claimOverlay'].forEach(id =>
+      document.getElementById(id).classList.remove('open')
+    );
+
+    // Re-render after done
+    document.getElementById('successDoneBtn').onclick = () => {
+      closeAll(); render();
+    };
+  }
+
+  // Init
+  render();
+
+  function toggleNavMenu(e) {
+    e.stopPropagation();
+    document.getElementById('navDropdown').classList.toggle('open');
+  }
+  function logout() { sessionStorage.clear(); window.location.href = 'emp_login.html'; }
+  document.addEventListener('click', function() {
+    const dd = document.getElementById('navDropdown');
+    if (dd) dd.classList.remove('open');
+  });
+</script>
+</body>
+</html>

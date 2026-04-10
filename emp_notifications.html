@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notifications</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f5f6fa; display: flex; flex-direction: column;
+    }
+    nav {
+      display: flex; align-items: center; padding: 0 28px; height: 52px;
+      background: #fff; border-bottom: 1px solid #eaedf3; flex-shrink: 0; z-index: 10;
+    }
+    .nav-links { display: flex; align-items: center; gap: 2px; flex: 1; list-style: none; }
+    .nav-links a {
+      color: #555e7a; text-decoration: none; font-size: 0.82rem; font-weight: 600;
+      padding: 6px 10px; border-radius: 6px; white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover  { color: #1a2044; background: #f0f1f8; }
+    .nav-links a.active { color: #1a2044; background: #f0f1f8; }
+    .nav-user { display: flex; align-items: center; gap: 10px; flex-shrink: 0; position: relative; }
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%; background: #e8eaf6;
+      border: 1.5px solid #c5cae9; display: flex; align-items: center; justify-content: center; color: #5c6bc0;
+    }
+    .avatar svg { width: 16px; height: 16px; }
+    .user-name { font-size: 0.83rem; font-weight: 600; color: #1a2044; }
+    .menu-btn {
+      background: none; border: none; cursor: pointer; padding: 4px; color: #8892aa;
+      display: flex; align-items: center; border-radius: 4px; transition: color 0.15s, background 0.15s;
+    }
+    .menu-btn:hover { color: #1a2044; background: #f0f1f8; }
+    .menu-btn svg { width: 18px; height: 18px; }
+    .nav-dropdown {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      background: #fff; border: 1px solid #eaedf3; border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.13); min-width: 192px;
+      padding: 6px; z-index: 200;
+      opacity: 0; pointer-events: none; transform: translateY(-6px);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .nav-dropdown.open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .nav-dd-header { padding: 10px 12px 8px; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px; }
+    .nav-dd-header .dd-name { font-size: 0.83rem; font-weight: 700; color: #1a2044; }
+    .nav-dd-header .dd-sub  { font-size: 0.71rem; color: #9ca3af; margin-top: 1px; }
+    .nav-dd-item {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 8px 12px; border: none; background: none; border-radius: 7px;
+      font-size: 0.82rem; color: #374151; cursor: pointer; font-family: inherit; text-align: left;
+      transition: background 0.12s, color 0.12s;
+    }
+    .nav-dd-item:hover { background: #fef2f2; color: #dc2626; }
+    .nav-dd-item svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+    .page { flex: 1; padding: 28px 32px; max-width: 760px; width: 100%; margin: 0 auto; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; border-radius: 14px; padding: 18px 22px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      margin-bottom: 20px;
+      animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .page-header-left { display: flex; align-items: center; gap: 14px; }
+    .icon-box {
+      width: 46px; height: 46px; border-radius: 12px; background: #3b82f6;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.3); flex-shrink: 0;
+    }
+    .icon-box svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .page-header-title h1 { font-size: 1.18rem; font-weight: 700; color: #1a2044; }
+    .page-header-title p  { font-size: 0.8rem; color: #8892aa; margin-top: 2px; }
+
+    .unread-badge {
+      font-size: 0.72rem; font-weight: 700; padding: 3px 10px;
+      border-radius: 20px; background: #eff6ff; color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    /* Filter bar */
+    .filter-bar {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+      animation: fadeUp 0.4s 0.05s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .filter-btn {
+      padding: 6px 14px; border-radius: 20px; border: 1px solid #e5e7eb;
+      background: #fff; font-size: 0.78rem; font-weight: 500; color: #6b7280;
+      cursor: pointer; transition: all 0.12s;
+    }
+    .filter-btn.active  { background: #1a2044; color: #fff; border-color: #1a2044; }
+    .filter-btn:hover:not(.active) { background: #f3f4f6; color: #374151; }
+
+    .mark-all-btn {
+      margin-left: auto; padding: 6px 14px; border-radius: 20px;
+      border: 1px solid #e5e7eb; background: #fff; font-size: 0.78rem;
+      font-weight: 500; color: #6b7280; cursor: pointer; transition: all 0.12s;
+    }
+    .mark-all-btn:hover { background: #f3f4f6; color: #374151; }
+
+    /* Notification list */
+    .notif-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .notif-card {
+      background: #fff; border-radius: 12px; padding: 16px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 2px 10px rgba(0,0,0,0.04);
+      display: flex; align-items: flex-start; gap: 14px;
+      animation: fadeUp 0.3s cubic-bezier(0.22,1,0.36,1) both;
+      border-left: 3px solid transparent; cursor: pointer;
+      transition: border-color 0.15s, background 0.12s;
+    }
+    .notif-card.unread { border-left-color: #3b82f6; }
+    .notif-card.unread:hover { background: #fafbff; }
+    .notif-card.read { opacity: 0.75; }
+    .notif-card.read:hover { background: #fafafa; opacity: 1; }
+
+    .notif-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #3b82f6; flex-shrink: 0; margin-top: 5px;
+      transition: opacity 0.2s;
+    }
+    .notif-card.read .notif-dot { opacity: 0; }
+
+    .notif-body { flex: 1; min-width: 0; }
+    .notif-type {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; margin-bottom: 3px;
+    }
+    .notif-card h3 { font-size: 0.88rem; font-weight: 600; color: #1a2044; margin-bottom: 3px; }
+    .notif-card p  { font-size: 0.82rem; color: #6b7280; line-height: 1.5; }
+
+    .notif-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .notif-time { font-size: 0.72rem; color: #b0b8cc; }
+    .notif-from { font-size: 0.72rem; color: #9ca3af; }
+
+    .type-general  { color: #3b82f6; }
+    .type-schedule { color: #0d9488; }
+    .type-urgent   { color: #ef4444; }
+    .type-reminder { color: #f97316; }
+
+    /* Empty state */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 80px 20px; color: #b0b8cc;
+      animation: fadeUp 0.5s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .empty-state svg { width: 56px; height: 56px; stroke: #d1d8e8; fill: none; stroke-width: 1.5; stroke-linecap: round; margin-bottom: 16px; }
+    .empty-state p    { font-size: 0.9rem; font-weight: 500; }
+    .empty-state span { font-size: 0.8rem; margin-top: 4px; color: #c8cfe0; }
+
+    /* Notification detail overlay */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(15,20,50,0.4); backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: #fff; border-radius: 16px; max-width: 480px; width: calc(100% - 40px);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.2); padding: 32px;
+      transform: translateY(14px); transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+    }
+    .overlay.open .modal-box { transform: translateY(0); }
+    .modal-close-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .modal-type-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+    .close-x {
+      background: none; border: none; font-size: 1.3rem; color: #9ca3af; cursor: pointer;
+      padding: 2px 6px; border-radius: 4px; transition: color 0.15s, background 0.15s;
+    }
+    .close-x:hover { color: #374151; background: #f3f4f6; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 10px; }
+    .modal-msg { font-size: 0.88rem; color: #374151; line-height: 1.65; white-space: pre-wrap; }
+    .modal-footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid #f3f4f6; font-size: 0.78rem; color: #9ca3af; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <ul class="nav-links">
+    <li><a href="emp_home.html">Home</a></li>
+    <li><a href="emp_schedule.html">Schedule</a></li>
+    <li><a href="emp_availability.html">Availability</a></li>
+    <li><a href="emp_timesheet.html">Timesheet</a></li>
+    <li><a href="emp_checklist.html">Checklist</a></li>
+    <li><a href="emp_notifications.html" class="active">Notifications</a></li>
+    <li><a href="emp_incident.html">Incident Form</a></li>
+  </ul>
+  <div class="nav-user">
+    <div class="avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+    </div>
+    <span class="user-name" id="displayName">Employee</span>
+    <button class="menu-btn" id="menuBtn" onclick="toggleNavMenu(event)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+      </svg>
+    </button>
+    <div class="nav-dropdown" id="navDropdown">
+      <div class="nav-dd-header">
+        <div class="dd-name" id="ddFullName">Employee</div>
+        <div class="dd-sub">Employee Portal</div>
+      </div>
+      <button class="nav-dd-item" onclick="logout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log Out
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
+      <div class="page-header-title">
+        <h1>Notifications</h1>
+        <p>Messages and announcements from management</p>
+      </div>
+    </div>
+    <span class="unread-badge" id="unreadBadge" style="display:none;"></span>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <button class="filter-btn active" id="fAll"      onclick="setFilter('all')">All</button>
+    <button class="filter-btn"        id="fUnread"   onclick="setFilter('unread')">Unread</button>
+    <button class="filter-btn"        id="fSchedule" onclick="setFilter('schedule')">Schedule</button>
+    <button class="filter-btn"        id="fUrgent"   onclick="setFilter('urgent')">Urgent</button>
+    <button class="mark-all-btn" onclick="markAllRead()">Mark all as read</button>
+  </div>
+
+  <!-- Notification list -->
+  <div class="notif-list" id="notifList">
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <p>No notifications</p>
+      <span>You're all caught up!</span>
+    </div>
+  </div>
+</div>
+
+<!-- Detail modal -->
+<div class="overlay" id="detailOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-close-row">
+      <span class="modal-type-label" id="detailType"></span>
+      <button class="close-x" onclick="closeDetail()">&times;</button>
+    </div>
+    <div class="modal-title"  id="detailTitle"></div>
+    <div class="modal-msg"    id="detailMsg"></div>
+    <div class="modal-footer" id="detailFooter"></div>
+  </div>
+</div>
+
+<script>
+  // === Notification class (Notifications.py) ===
+  class Notification {
+    constructor(notificationId, message, userId, status, timestamp) {
+      this.notificationId = notificationId; this.message = message;
+      this.userId = userId; this.status = status; this.timestamp = timestamp;
+    }
+    validateMessage(message) {
+      if (message !== '') { console.log('Notification.validateMessage: Message valid'); return true; }
+      console.log('Notification.validateMessage: Please fill out this field.'); return false;
+    }
+    getEmployees() {
+      const employees = ['Employee1', 'Employee2'];
+      console.log('Notification.getEmployees: Employees retrieved'); return employees;
+    }
+    validateSelection() {
+      const employees = this.getEmployees();
+      if (employees.length > 0) { console.log('Notification.validateSelection: Selection valid'); return true; }
+      console.log('Notification.validateSelection: Please select at least one employee'); return false;
+    }
+    archiveNotification() {
+      this.status = 'archived';
+      console.log('Notification.archiveNotification: Notification archived'); return true;
+    }
+    publishNotification() {
+      this.status = 'published';
+      console.log('Notification.publishNotification: Notification published'); return true;
+    }
+  }
+
+  // === Employee class (Employee.py) — viewNotification ===
+  class Employee {
+    constructor(userId) { this.userId = userId; }
+    viewNotification() { console.log('Employee.viewNotification: Viewing notifications'); return true; }
+  }
+
+  const empName = sessionStorage.getItem('emp_empName') || 'Employee';
+  const empId   = parseInt(sessionStorage.getItem('emp_empId') || '1');
+  document.getElementById('displayName').textContent = empName.split(' ')[0];
+  document.getElementById('ddFullName').textContent  = empName;
+  const currentEmployee = new Employee(empId);
+  currentEmployee.viewNotification();
+
+  // Mock notifications from management + any created by manager notifications.html
+  const MOCK_NOTIFICATIONS = [
+    {
+      id: 'n1',
+      type: 'schedule',
+      title: 'Schedule Published – Week of Mar 30',
+      message: 'The schedule for the week of March 30 has been published. Please log in to review your assigned shifts and confirm your availability.',
+      from: 'Julien Côté (Manager)',
+      time: 'Apr 1, 2026 · 9:14 AM',
+    },
+    {
+      id: 'n2',
+      type: 'urgent',
+      title: 'URGENT: Early Close – Friday Apr 3',
+      message: 'Due to a private event, the restaurant will close at 7:00 PM this Friday (April 3). All evening staff should plan to leave by 7:30 PM. Please adjust your arrangements accordingly.\n\nThank you for your flexibility.',
+      from: 'Julien Côté (Manager)',
+      time: 'Apr 2, 2026 · 4:30 PM',
+    },
+    {
+      id: 'n3',
+      type: 'reminder',
+      title: 'Reminder: Submit Your Availability for Apr 7–13',
+      message: 'Please submit your availability for the week of April 7–13 by end of day Saturday. Log in to the Employee Portal and go to Availability to submit.',
+      from: 'Julien Côté (Manager)',
+      time: 'Apr 3, 2026 · 8:00 AM',
+    },
+    {
+      id: 'n4',
+      type: 'general',
+      title: 'Staff Meeting – Monday Apr 7 at 10:00 AM',
+      message: 'There will be a mandatory all-staff meeting on Monday April 7 at 10:00 AM in the dining room. Topics: spring menu updates, service procedures, and Q2 goals.\n\nLight breakfast will be provided.',
+      from: 'Julien Côté (Manager)',
+      time: 'Mar 31, 2026 · 2:00 PM',
+    },
+  ];
+
+  let readState  = JSON.parse(sessionStorage.getItem('kaiji_notif_read') || '{}');
+  let currentFilter = 'all';
+  let activeNotifId = null;
+
+  // Merge mock with any manager-created notifications
+  function getAllNotifications() {
+    const managerNotifs = JSON.parse(sessionStorage.getItem('kaiji_notifications') || '[]');
+    // Manager-created notifs have a different shape; normalize them
+    const normalized = managerNotifs.map(n => ({
+      id: 'mg_' + n.id,
+      type: 'general',
+      title: n.title,
+      message: n.message,
+      from: 'Manager',
+      time: n.time || 'Recently',
+    }));
+    return [...normalized, ...MOCK_NOTIFICATIONS];
+  }
+
+  function typeLabel(type) {
+    return { general:'General', schedule:'Schedule', urgent:'Urgent', reminder:'Reminder' }[type] || 'Notice';
+  }
+  function typeCls(type) {
+    return { general:'type-general', schedule:'type-schedule', urgent:'type-urgent', reminder:'type-reminder' }[type] || 'type-general';
+  }
+
+  function setFilter(f) {
+    currentFilter = f;
+    ['fAll','fUnread','fSchedule','fUrgent'].forEach(id => {
+      document.getElementById(id).classList.remove('active');
+    });
+    const map = { all:'fAll', unread:'fUnread', schedule:'fSchedule', urgent:'fUrgent' };
+    if (map[f]) document.getElementById(map[f]).classList.add('active');
+    renderList();
+  }
+
+  function renderList() {
+    const all    = getAllNotifications();
+    let filtered = all;
+    if (currentFilter === 'unread')   filtered = all.filter(n => !readState[n.id]);
+    if (currentFilter === 'schedule') filtered = all.filter(n => n.type === 'schedule');
+    if (currentFilter === 'urgent')   filtered = all.filter(n => n.type === 'urgent');
+
+    const list  = document.getElementById('notifList');
+    const empty = document.getElementById('emptyState');
+
+    // Clear old cards but keep empty state
+    list.querySelectorAll('.notif-card').forEach(c => c.remove());
+
+    if (filtered.length === 0) {
+      empty.style.display = 'flex';
+    } else {
+      empty.style.display = 'none';
+      filtered.forEach((n, idx) => {
+        const isRead = !!readState[n.id];
+        const card = document.createElement('div');
+        card.className = `notif-card ${isRead ? 'read' : 'unread'}`;
+        card.style.animationDelay = `${idx * 0.04}s`;
+        card.dataset.id = n.id;
+        card.innerHTML = `
+          <div class="notif-dot"></div>
+          <div class="notif-body">
+            <div class="notif-type ${typeCls(n.type)}">${typeLabel(n.type)}</div>
+            <h3>${escHtml(n.title)}</h3>
+            <p>${escHtml(n.message.split('\n')[0])}${n.message.includes('\n') ? '…' : ''}</p>
+            <div class="notif-meta">
+              <span class="notif-time">${escHtml(n.time)}</span>
+              <span class="notif-from">· From: ${escHtml(n.from)}</span>
+            </div>
+          </div>
+        `;
+        card.addEventListener('click', () => openDetail(n.id));
+        list.appendChild(card);
+      });
+    }
+
+    // Update unread badge
+    const unread = all.filter(n => !readState[n.id]).length;
+    const badge  = document.getElementById('unreadBadge');
+    if (unread > 0) {
+      badge.textContent  = `${unread} unread`;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function openDetail(id) {
+    activeNotifId = id;
+    // Mark as read
+    readState[id] = true;
+    sessionStorage.setItem('kaiji_notif_read', JSON.stringify(readState));
+
+    const n = getAllNotifications().find(x => x.id === id);
+    if (!n) return;
+
+    // Notification.validateMessage + storeNotification + Employee.viewNotification (Notifications.py / Employee.py)
+    const notifObj = new Notification(id, n.message, empId, 'read', n.time);
+    notifObj.validateMessage(n.message);
+    notifObj.archiveNotification();
+    currentEmployee.viewNotification();
+    document.getElementById('detailType').textContent  = typeLabel(n.type);
+    document.getElementById('detailType').className    = `modal-type-label ${typeCls(n.type)}`;
+    document.getElementById('detailTitle').textContent = n.title;
+    document.getElementById('detailMsg').textContent   = n.message;
+    document.getElementById('detailFooter').innerHTML  = `From: <strong>${escHtml(n.from)}</strong> &nbsp;·&nbsp; ${escHtml(n.time)}`;
+    document.getElementById('detailOverlay').classList.add('open');
+
+    renderList();
+  }
+
+  function closeDetail() {
+    document.getElementById('detailOverlay').classList.remove('open');
+    activeNotifId = null;
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('detailOverlay')) closeDetail();
+  }
+
+  function markAllRead() {
+    // Notification.storeNotification for each (Notifications.py)
+    getAllNotifications().forEach(n => {
+      readState[n.id] = true;
+      const notifObj = new Notification(n.id, n.message, empId, 'archived', n.time);
+      notifObj.archiveNotification();
+    });
+    sessionStorage.setItem('kaiji_notif_read', JSON.stringify(readState));
+    renderList();
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  renderList();
+
+  function toggleNavMenu(e) {
+    e.stopPropagation();
+    document.getElementById('navDropdown').classList.toggle('open');
+  }
+  function logout() { sessionStorage.clear(); window.location.href = 'emp_login.html'; }
+  document.addEventListener('click', function() {
+    const dd = document.getElementById('navDropdown');
+    if (dd) dd.classList.remove('open');
+  });
+</script>
+</body>
+</html>

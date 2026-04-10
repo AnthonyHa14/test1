@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Availability</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f5f6fa; display: flex; flex-direction: column;
+    }
+    nav {
+      display: flex; align-items: center; padding: 0 28px; height: 52px;
+      background: #fff; border-bottom: 1px solid #eaedf3; flex-shrink: 0; z-index: 10;
+    }
+    .nav-links { display: flex; align-items: center; gap: 2px; flex: 1; list-style: none; }
+    .nav-links a {
+      color: #555e7a; text-decoration: none; font-size: 0.82rem; font-weight: 600;
+      padding: 6px 10px; border-radius: 6px; white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover { color: #1a2044; background: #f0f1f8; }
+    .nav-links a.active { color: #1a2044; background: #f0f1f8; }
+    .nav-user { display: flex; align-items: center; gap: 10px; flex-shrink: 0; position: relative; }
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%; background: #e8eaf6;
+      border: 1.5px solid #c5cae9; display: flex; align-items: center; justify-content: center; color: #5c6bc0;
+    }
+    .avatar svg { width: 16px; height: 16px; }
+    .user-name { font-size: 0.83rem; font-weight: 600; color: #1a2044; }
+    .menu-btn {
+      background: none; border: none; cursor: pointer; padding: 4px; color: #8892aa;
+      display: flex; align-items: center; border-radius: 4px; transition: color 0.15s, background 0.15s;
+    }
+    .menu-btn:hover { color: #1a2044; background: #f0f1f8; }
+    .menu-btn svg { width: 18px; height: 18px; }
+    .nav-dropdown {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      background: #fff; border: 1px solid #eaedf3; border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.13); min-width: 192px;
+      padding: 6px; z-index: 200;
+      opacity: 0; pointer-events: none; transform: translateY(-6px);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .nav-dropdown.open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .nav-dd-header { padding: 10px 12px 8px; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px; }
+    .nav-dd-header .dd-name { font-size: 0.83rem; font-weight: 700; color: #1a2044; }
+    .nav-dd-header .dd-sub  { font-size: 0.71rem; color: #9ca3af; margin-top: 1px; }
+    .nav-dd-item {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 8px 12px; border: none; background: none; border-radius: 7px;
+      font-size: 0.82rem; color: #374151; cursor: pointer; font-family: inherit; text-align: left;
+      transition: background 0.12s, color 0.12s;
+    }
+    .nav-dd-item:hover { background: #fef2f2; color: #dc2626; }
+    .nav-dd-item svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+    .page { flex: 1; padding: 28px 32px; max-width: 780px; width: 100%; margin: 0 auto; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; border-radius: 14px; padding: 18px 22px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      margin-bottom: 20px;
+      animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .page-header-left { display: flex; align-items: center; gap: 14px; }
+    .icon-box {
+      width: 46px; height: 46px; border-radius: 12px; background: #0d9488;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(13,148,136,0.3); flex-shrink: 0;
+    }
+    .icon-box svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .page-header-title h1 { font-size: 1.18rem; font-weight: 700; color: #1a2044; }
+    .page-header-title p  { font-size: 0.8rem; color: #8892aa; margin-top: 2px; }
+
+    .tabs {
+      display: flex; background: #fff; border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 20px; overflow: hidden;
+      animation: fadeUp 0.4s 0.05s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .tab-btn {
+      flex: 1; padding: 12px 16px; border: none; background: #fff;
+      font-size: 0.85rem; font-weight: 600; color: #6b7280;
+      cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .tab-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .tab-btn.active { color: #0d9488; border-bottom-color: #0d9488; background: #f0fafa; }
+    .tab-btn:not(.active):hover { color: #374151; background: #f9fafb; }
+
+    .form-card {
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      overflow: hidden;
+      animation: fadeUp 0.4s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .form-card-head {
+      padding: 16px 22px; border-bottom: 1px solid #f3f4f6;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .form-card-head h2 { font-size: 0.95rem; font-weight: 700; color: #1a2044; }
+    .form-card-head p  { font-size: 0.77rem; color: #9ca3af; margin-top: 2px; }
+
+    .select-all-row {
+      display: flex; align-items: center; gap: 10px; padding: 10px 22px;
+      background: #f9fafb; border-bottom: 1px solid #f3f4f6;
+      font-size: 0.8rem; color: #6b7280; font-weight: 500;
+    }
+    .day-row {
+      display: grid; grid-template-columns: 36px 110px 1fr auto;
+      align-items: center; gap: 12px; padding: 12px 22px;
+      border-bottom: 1px solid #f3f4f6; transition: background 0.12s;
+    }
+    .day-row:last-child { border-bottom: none; }
+    .day-row.unavailable { background: #fafafa; }
+    .day-row.closed { background: #f9fafb; pointer-events: none; }
+    .day-row.closed .day-name { color: #d1d5db; }
+    .day-row.closed .day-date { color: #e5e7eb; }
+    .closed-badge {
+      display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600;
+      color: #9ca3af; background: #f3f4f6; border: 1px solid #e5e7eb;
+      border-radius: 20px; padding: 4px 12px; white-space: nowrap;
+    }
+    .closed-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
+    .day-label { display: flex; flex-direction: column; }
+    .day-name  { font-size: 0.88rem; font-weight: 600; color: #1a2044; }
+    .day-date  { font-size: 0.72rem; color: #9ca3af; margin-top: 1px; }
+    .time-range { display: flex; align-items: center; gap: 8px; transition: opacity 0.2s; }
+    .time-range.disabled { opacity: 0.3; pointer-events: none; }
+    .time-input {
+      padding: 7px 10px; border: 1px solid #e5e7eb; border-radius: 8px;
+      font-size: 0.82rem; color: #374151; outline: none; font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s; width: 110px;
+    }
+    .time-input:focus { border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,0.12); }
+    .time-input.err   { border-color: #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.1); }
+    .time-sep { font-size: 0.78rem; color: #9ca3af; font-weight: 500; }
+    .allday-label {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.75rem; color: #6b7280; cursor: pointer; white-space: nowrap;
+    }
+    .allday-label input { accent-color: #0d9488; cursor: pointer; }
+    .toggle-wrap { display: flex; align-items: center; }
+    .toggle {
+      position: relative; width: 36px; height: 20px; cursor: pointer;
+      display: flex; align-items: center;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-track { position: absolute; inset: 0; border-radius: 20px; background: #d1d5db; transition: background 0.2s; }
+    .toggle input:checked ~ .toggle-track { background: #0d9488; }
+    .toggle-thumb {
+      position: absolute; top: 3px; left: 3px; width: 14px; height: 14px;
+      border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.2s;
+    }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+    .notes-section { padding: 16px 22px; border-top: 1px solid #f3f4f6; }
+    .notes-label { font-size: 0.78rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .notes-input {
+      width: 100%; padding: 10px 13px; border: 1px solid #e5e7eb; border-radius: 8px;
+      font-size: 0.85rem; color: #374151; font-family: inherit; outline: none;
+      resize: vertical; min-height: 80px; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .notes-input:focus { border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,0.12); }
+    .notes-input::placeholder { color: #c4c9d4; }
+    .err-banner {
+      display: none; margin: 0 22px 14px; background: #fef2f2; border: 1px solid #fecaca;
+      border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: #b91c1c;
+      align-items: center; gap: 8px;
+    }
+    .err-banner.show { display: flex; }
+    .err-banner svg { width: 16px; height: 16px; stroke: #ef4444; fill: none; stroke-width: 2; flex-shrink: 0; }
+    .form-footer { padding: 16px 22px; border-top: 1px solid #f3f4f6; display: flex; justify-content: flex-end; gap: 10px; }
+    .btn-clear {
+      padding: 10px 20px; border: 1px solid #e5e7eb; border-radius: 8px;
+      background: #fff; color: #6b7280; font-size: 0.88rem; font-weight: 500; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-clear:hover { background: #f9fafb; }
+    .btn-submit {
+      padding: 10px 28px; border: none; border-radius: 8px; background: #0d9488; color: #fff;
+      font-size: 0.88rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(13,148,136,0.3); transition: filter 0.15s, transform 0.15s;
+    }
+    .btn-submit:hover { filter: brightness(1.07); transform: translateY(-1px); }
+    .btn-submit:active { transform: translateY(0); }
+
+    /* History */
+    .history-card {
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      animation: fadeUp 0.4s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .history-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; color: #b0b8cc; }
+    .history-empty svg { width: 48px; height: 48px; stroke: #d1d8e8; fill: none; stroke-width: 1.5; stroke-linecap: round; margin-bottom: 14px; }
+    .history-empty p    { font-size: 0.88rem; font-weight: 500; }
+    .history-empty span { font-size: 0.78rem; color: #c8cfe0; margin-top: 4px; }
+    .history-item { padding: 16px 22px; border-bottom: 1px solid #f3f4f6; }
+    .history-item:last-child { border-bottom: none; }
+    .history-item-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .history-week { font-size: 0.85rem; font-weight: 700; color: #1a2044; }
+    .history-badge { font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: #dcfce7; color: #15803d; }
+    .history-days { display: flex; flex-wrap: wrap; gap: 6px; }
+    .history-day-chip { font-size: 0.75rem; color: #374151; background: #f3f4f6; border-radius: 6px; padding: 4px 10px; display: flex; align-items: center; gap: 5px; }
+    .history-day-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: #0d9488; }
+    .btn-edit-record { margin-top: 12px; padding: 7px 18px; border: 1px solid #0d9488; border-radius: 8px; background: #fff; color: #0d9488; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: background 0.15s, color 0.15s; }
+    .btn-edit-record:hover { background: #0d9488; color: #fff; }
+
+    /* Modal */
+    .overlay { position: fixed; inset: 0; background: rgba(15,20,50,0.4); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box { background: #fff; border-radius: 16px; max-width: 380px; width: 100%; box-shadow: 0 24px 60px rgba(0,0,0,0.18); padding: 40px 32px; text-align: center; transform: translateY(14px); transition: transform 0.25s cubic-bezier(0.22,1,0.36,1); }
+    .overlay.open .modal-box { transform: translateY(0); }
+    .success-circle { width: 64px; height: 64px; border-radius: 50%; background: #dcfce7; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+    .success-circle svg { width: 30px; height: 30px; stroke: #16a34a; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .modal-box h2 { font-size: 1.2rem; font-weight: 700; color: #111827; margin-bottom: 8px; }
+    .modal-box p  { font-size: 0.88rem; color: #6b7280; line-height: 1.6; margin-bottom: 24px; }
+    .btn-done { padding: 11px 36px; border: none; border-radius: 50px; background: #0d9488; color: #fff; font-size: 0.92rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(13,148,136,0.3); transition: filter 0.15s; }
+    .btn-done:hover { filter: brightness(1.07); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <ul class="nav-links">
+    <li><a href="emp_home.html">Home</a></li>
+    <li><a href="emp_schedule.html">Schedule</a></li>
+    <li><a href="emp_availability.html" class="active">Availability</a></li>
+    <li><a href="emp_timesheet.html">Timesheet</a></li>
+    <li><a href="emp_checklist.html">Checklist</a></li>
+    <li><a href="emp_notifications.html">Notifications</a></li>
+    <li><a href="emp_incident.html">Incident Form</a></li>
+  </ul>
+  <div class="nav-user">
+    <div class="avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+    </div>
+    <span class="user-name" id="displayName">Employee</span>
+    <button class="menu-btn" id="menuBtn" onclick="toggleNavMenu(event)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+      </svg>
+    </button>
+    <div class="nav-dropdown" id="navDropdown">
+      <div class="nav-dd-header">
+        <div class="dd-name" id="ddFullName">Employee</div>
+        <div class="dd-sub">Employee Portal</div>
+      </div>
+      <button class="nav-dd-item" onclick="logout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log Out
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <div class="page-header-title">
+        <h1>Availability</h1>
+        <p>Submit and manage your weekly availability</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabSubmit" onclick="switchTab('submit')">
+      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Submit Availability
+    </button>
+    <button class="tab-btn" id="tabHistory" onclick="switchTab('history')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      My Submissions
+    </button>
+  </div>
+
+  <div id="panelSubmit">
+    <div class="form-card">
+      <div class="form-card-head">
+        <div>
+          <h2 id="formCardTitle">Weekly Availability Form</h2>
+          <p>Toggle the days you are available and set your preferred hours.</p>
+        </div>
+      </div>
+      <div class="select-all-row">
+        <label class="toggle" title="Toggle all days">
+          <input type="checkbox" id="selectAll" onchange="toggleAll(this.checked)" />
+          <div class="toggle-track"></div><div class="toggle-thumb"></div>
+        </label>
+        <span>Select all days</span>
+      </div>
+      <div id="dayRows"></div>
+      <div class="err-banner" id="errBanner">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="errMsg">Please select at least one available day before submitting.</span>
+      </div>
+      <div class="notes-section">
+        <div class="notes-label">Additional Notes <span style="font-weight:400;color:#9ca3af;">(optional)</span></div>
+        <textarea class="notes-input" id="notesInput" placeholder="e.g. I can only work mornings on Fridays…"></textarea>
+      </div>
+      <div class="form-footer">
+        <button class="btn-clear" onclick="clearForm()">Clear</button>
+        <button class="btn-submit" id="btnSubmit" onclick="handleSubmit()">Submit Availability</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="panelHistory" style="display:none;">
+    <div class="history-card" id="historyCard">
+      <div class="history-empty" id="historyEmpty">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <p>No submissions yet</p>
+        <span>Your submitted availability will appear here</span>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="successOverlay">
+  <div class="modal-box">
+    <div class="success-circle"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <h2>Availability Submitted!</h2>
+    <p id="successMsg">Your availability has been saved and sent to your manager.</p>
+    <button class="btn-done" onclick="closeSuccess()">Done</button>
+  </div>
+</div>
+
+<script>
+  // === Availability class (Availability.py) ===
+  class Availability {
+    constructor(availabilityId, userId, date, startTime, endTime, status) {
+      this.availabilityId = availabilityId; this.userId = userId;
+      this.date = date; this.startTime = startTime; this.endTime = endTime; this.status = status;
+    }
+    createAvailability(date, startTime, endTime) {
+      const av = new Availability(this.availabilityId, this.userId, date, startTime, endTime, 'pending');
+      console.log('Availability.createAvailability: Availability successfully created'); return av;
+    }
+    validateAvailability() {
+      if (this.date !== '' && this.startTime !== '' && this.endTime !== '') {
+        console.log('Availability.validateAvailability: Availability is valid'); return true;
+      }
+      console.log('Availability.validateAvailability: Please fill out missing information'); return false;
+    }
+    submitAvailability() {
+      if (this.validateAvailability()) {
+        this.status = 'submitted';
+        console.log('Availability.submitAvailability: Availability successfully submitted'); return true;
+      }
+      console.log('Availability.submitAvailability: Availability submission failed'); return false;
+    }
+    updateAvailability(date, startTime, endTime) {
+      this.date = date; this.startTime = startTime; this.endTime = endTime;
+      console.log('Availability.updateAvailability: Availability successfully updated'); return true;
+    }
+    saveAvailability() { console.log('Availability.saveAvailability: Availability successfully saved'); return true; }
+    viewAvailability() {
+      const details = `Availability ${this.availabilityId}: ${this.date}, ${this.startTime} - ${this.endTime}`;
+      console.log('Availability.viewAvailability:', details); return details;
+    }
+    getShiftDetails(shiftId, shiftDayOfWeek, shiftStartTime, shiftEndTime) {
+      const details = `Shift ${shiftId}: Day ${shiftDayOfWeek}, ${shiftStartTime} - ${shiftEndTime}`;
+      console.log('Availability.getShiftDetails:', details); return details;
+    }
+  }
+
+  const empName = sessionStorage.getItem('emp_empName') || 'Employee';
+  const empId   = parseInt(sessionStorage.getItem('emp_empId') || '1');
+  document.getElementById('displayName').textContent = empName.split(' ')[0];
+  document.getElementById('ddFullName').textContent  = empName;
+
+  const DAY_NAMES   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const CLOSED_DAYS = new Set([0, 1]);
+  const DAY_SHORT   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTH_ABBR  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  let submissions = [
+    {
+      days: [
+        { name:'Tuesday',   short:'Tue', enabled:true, startTime:'10:00', endTime:'22:00', allDay:false },
+        { name:'Wednesday', short:'Wed', enabled:true, startTime:'10:00', endTime:'22:00', allDay:false },
+        { name:'Thursday',  short:'Thu', enabled:true, startTime:'10:00', endTime:'22:00', allDay:false },
+        { name:'Friday',    short:'Fri', enabled:true, startTime:'10:00', endTime:'22:00', allDay:false },
+        { name:'Saturday',  short:'Sat', enabled:true, startTime:'11:00', endTime:'22:00', allDay:false },
+      ],
+      notes: 'Available all day Tue–Sat for FOH shifts. Prefer not to open on Wednesdays if possible.',
+      submittedAt: 'Mar 25, 2026, 10:14 AM',
+    }
+  ];
+  let editingIndex = null;
+  let dayState     = [];
+
+  function initDayState() {
+    dayState = DAY_NAMES.map(() => ({ enabled:false, startTime:'09:00', endTime:'17:00', allDay:false }));
+  }
+
+  function buildDayRows() {
+    const rows = document.getElementById('dayRows');
+    rows.innerHTML = '';
+    DAY_NAMES.forEach((name, i) => {
+      const row = document.createElement('div');
+      row.id = `row-${i}`;
+      if (CLOSED_DAYS.has(i)) {
+        row.className = 'day-row closed';
+        row.innerHTML = `<div></div><div class="day-label"><span class="day-name">${name}</span></div><div></div><span class="closed-badge">Restaurant Closed</span>`;
+      } else {
+        const s = dayState[i];
+        row.className = 'day-row' + (!s.enabled ? ' unavailable' : '');
+        row.innerHTML = `
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="tog-${i}" ${s.enabled ? 'checked' : ''} onchange="toggleDay(${i}, this.checked)" />
+              <div class="toggle-track"></div><div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <div class="day-label"><span class="day-name">${name}</span></div>
+          <div class="time-range ${s.enabled && !s.allDay ? '' : 'disabled'}" id="times-${i}">
+            <input class="time-input" type="time" id="start-${i}" value="${s.startTime}" onchange="dayState[${i}].startTime=this.value; validateRow(${i})" />
+            <span class="time-sep">to</span>
+            <input class="time-input" type="time" id="end-${i}" value="${s.endTime}" onchange="dayState[${i}].endTime=this.value; validateRow(${i})" />
+          </div>
+          <label class="allday-label">
+            <input type="checkbox" id="allday-${i}" ${s.allDay ? 'checked' : ''} onchange="toggleAllDay(${i}, this.checked)" />
+            All day
+          </label>`;
+      }
+      rows.appendChild(row);
+    });
+    syncSelectAll();
+  }
+
+  function toggleDay(i, enabled) {
+    dayState[i].enabled = enabled;
+    document.getElementById(`row-${i}`).className = 'day-row' + (!enabled ? ' unavailable' : '');
+    const times = document.getElementById(`times-${i}`);
+    times.classList.toggle('disabled', !enabled || dayState[i].allDay);
+    syncSelectAll(); hideErr();
+  }
+  function toggleAllDay(i, allDay) {
+    dayState[i].allDay = allDay;
+    document.getElementById(`times-${i}`).classList.toggle('disabled', allDay || !dayState[i].enabled);
+  }
+  function toggleAll(checked) {
+    dayState.forEach((_, i) => {
+      if (CLOSED_DAYS.has(i)) return;
+      dayState[i].enabled = checked;
+      const cb = document.getElementById(`tog-${i}`); if (cb) cb.checked = checked;
+      const row = document.getElementById(`row-${i}`); if (row) row.className = 'day-row' + (!checked ? ' unavailable' : '');
+      const times = document.getElementById(`times-${i}`); if (times) times.classList.toggle('disabled', !checked || dayState[i].allDay);
+    });
+    hideErr();
+  }
+  function syncSelectAll() {
+    document.getElementById('selectAll').checked = dayState.every((d, i) => CLOSED_DAYS.has(i) || d.enabled);
+  }
+  function validateRow(i) {
+    const s = document.getElementById(`start-${i}`);
+    const e = document.getElementById(`end-${i}`);
+    if (!s || !e) return true;
+    const bad = dayState[i].enabled && !dayState[i].allDay && timeToH(e.value) <= timeToH(s.value);
+    s.classList.toggle('err', bad); e.classList.toggle('err', bad);
+    return !bad;
+  }
+  function timeToH(val) { const [h,m] = val.split(':').map(Number); return h + m/60; }
+  function hideErr() { document.getElementById('errBanner').classList.remove('show'); }
+  function showErr(msg) { document.getElementById('errMsg').textContent = msg; document.getElementById('errBanner').classList.add('show'); }
+
+  function handleSubmit() {
+    hideErr();
+    const selected = dayState.filter(d => d.enabled);
+    if (!selected.length) { showErr('Please select at least one available day before submitting.'); return; }
+    let ok = true;
+    dayState.forEach((_, i) => { if (!validateRow(i)) ok = false; });
+    if (!ok) { showErr('Please fix the time errors — end time must be after start time.'); return; }
+
+    const firstDay = selected[0];
+    const avCounter = submissions.length + 1;
+
+    if (editingIndex !== null) {
+      // Availability.updateAvailability (Availability.py)
+      const existingAv = new Availability(editingIndex + 1, empId, firstDay.date || '', firstDay.startTime, firstDay.endTime, 'submitted');
+      existingAv.updateAvailability(firstDay.date || '', firstDay.startTime, firstDay.endTime);
+      existingAv.saveAvailability();
+    } else {
+      // Availability.createAvailability + submitAvailability (Availability.py)
+      const newAv = new Availability(avCounter, empId, firstDay.date || '', firstDay.startTime, firstDay.endTime, 'pending');
+      newAv.createAvailability(firstDay.date || '', firstDay.startTime, firstDay.endTime);
+      newAv.submitAvailability();
+      newAv.saveAvailability();
+    }
+
+    const record = {
+      days: dayState.map((d,i) => ({...d, name:DAY_NAMES[i], short:DAY_SHORT[i]})).filter(d => d.enabled),
+      notes: document.getElementById('notesInput').value.trim(),
+      submittedAt: new Date().toLocaleString(),
+    };
+    if (editingIndex !== null) { submissions[editingIndex] = record; editingIndex = null; }
+    else submissions.unshift(record);
+    setFormMode('new');
+    const count = record.days.length;
+    document.getElementById('successMsg').textContent = `Your availability (${count} day${count!==1?'s':''}) has been saved and sent to your manager.`;
+    document.getElementById('successOverlay').classList.add('open');
+  }
+
+  function closeSuccess() {
+    document.getElementById('successOverlay').classList.remove('open');
+    buildHistoryList(); switchTab('history');
+  }
+  function setFormMode(mode) {
+    document.getElementById('formCardTitle').textContent = mode==='edit' ? 'Edit Availability' : 'Weekly Availability Form';
+    document.getElementById('btnSubmit').textContent     = mode==='edit' ? 'Update Availability' : 'Submit Availability';
+  }
+  function editAvailability(idx) {
+    const rec = submissions[idx]; editingIndex = idx;
+    initDayState();
+    rec.days.forEach(d => {
+      const i = DAY_NAMES.indexOf(d.name); if (i===-1) return;
+      dayState[i] = {...dayState[i], enabled:true, startTime:d.startTime, endTime:d.endTime, allDay:d.allDay};
+    });
+    buildDayRows();
+    document.getElementById('notesInput').value = rec.notes || '';
+    hideErr(); setFormMode('edit'); switchTab('submit');
+  }
+  function clearForm() {
+    editingIndex = null; initDayState(); buildDayRows();
+    document.getElementById('notesInput').value = ''; hideErr(); setFormMode('new');
+  }
+  function buildHistoryList() {
+    const empty = document.getElementById('historyEmpty');
+    const list  = document.getElementById('historyList');
+    list.innerHTML = '';
+    if (!submissions.length) { empty.style.display = 'flex'; return; }
+    empty.style.display = 'none';
+    submissions.forEach((rec, idx) => {
+      // Availability.viewAvailability (Availability.py)
+      const firstDay = rec.days[0] || {};
+      const av = new Availability(idx + 1, empId, firstDay.name || '', firstDay.startTime || '', firstDay.endTime || '', 'submitted');
+      av.viewAvailability();
+      const chips = rec.days.map(d => `<div class="history-day-chip"><div class="dot"></div><span>${d.name} · ${d.allDay ? 'All day' : `${fmtTime(d.startTime)} – ${fmtTime(d.endTime)}`}</span></div>`).join('');
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `
+        <div class="history-item-head">
+          <div><div class="history-week">Availability Submission</div><div style="font-size:0.72rem;color:#9ca3af;margin-top:2px;">Submitted ${rec.submittedAt}</div></div>
+          <span class="history-badge">Submitted</span>
+        </div>
+        <div class="history-days">${chips}</div>
+        ${rec.notes ? `<div style="font-size:0.78rem;color:#6b7280;margin-top:8px;font-style:italic;">"${escHtml(rec.notes)}"</div>` : ''}
+        <button onclick="editAvailability(${idx})" class="btn-edit-record">Edit</button>`;
+      list.appendChild(item);
+    });
+  }
+  function fmtTime(val) {
+    const [h,m] = val.split(':').map(Number);
+    const ampm = h<12?'AM':'PM'; const h12 = h===0?12:h<=12?h:h-12;
+    return `${h12}:${m.toString().padStart(2,'0')} ${ampm}`;
+  }
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function switchTab(tab) {
+    document.getElementById('tabSubmit').classList.toggle('active',  tab==='submit');
+    document.getElementById('tabHistory').classList.toggle('active', tab==='history');
+    document.getElementById('panelSubmit').style.display  = tab==='submit'  ? '' : 'none';
+    document.getElementById('panelHistory').style.display = tab==='history' ? '' : 'none';
+    if (tab==='history') buildHistoryList();
+  }
+  initDayState(); buildDayRows();
+
+  function toggleNavMenu(e) {
+    e.stopPropagation();
+    document.getElementById('navDropdown').classList.toggle('open');
+  }
+  function logout() { sessionStorage.clear(); window.location.href = 'emp_login.html'; }
+  document.addEventListener('click', function() {
+    const dd = document.getElementById('navDropdown');
+    if (dd) dd.classList.remove('open');
+  });
+</script>
+</body>
+</html>

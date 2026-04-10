@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Portal — Sign In</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #1a2044;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    nav {
+      display: flex; align-items: center; padding: 0 28px; height: 52px;
+      background: #111830; flex-shrink: 0;
+    }
+    .nav-links { display: flex; align-items: center; gap: 4px; flex: 1; list-style: none; }
+    .nav-links a {
+      color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.82rem;
+      padding: 6px 10px; border-radius: 6px; white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .nav-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .nav-btn {
+      padding: 6px 16px; border-radius: 6px; font-size: 0.82rem;
+      font-weight: 500; cursor: pointer; text-decoration: none; transition: all 0.15s;
+      font-family: inherit;
+    }
+    .nav-btn-outline { border: 1px solid rgba(255,255,255,0.3); background: transparent; color: #fff; }
+    .nav-btn-outline:hover { border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.06); }
+    .nav-btn-solid { border: none; background: #1e2a4a; color: #fff; }
+    .nav-btn-solid:hover { background: #263460; }
+
+    .scene {
+      position: relative; flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Golden flower decoration */
+    .deco {
+      position: absolute; left: -80px; top: 50%;
+      transform: translateY(-50%);
+      width: 420px; height: 420px; pointer-events: none;
+    }
+    .deco-ring {
+      position: absolute; inset: 0; border-radius: 50%;
+      border: 2px solid rgba(212,175,55,0.25);
+    }
+    .deco-ring:nth-child(2) { inset: 30px; border-color: rgba(212,175,55,0.3); }
+    .deco-ring:nth-child(3) { inset: 60px; border-color: rgba(212,175,55,0.2); }
+    .petals { position: absolute; inset: 60px; }
+    .petal {
+      position: absolute; width: 90px; height: 130px;
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      background: linear-gradient(160deg, #c9a227 0%, #8b6914 60%, #5a430d 100%);
+      opacity: 0.75; transform-origin: center bottom;
+    }
+    .petal::after {
+      content: ''; position: absolute; left: 50%; top: 10%;
+      width: 1px; height: 80%; background: rgba(0,0,0,0.25);
+      transform: translateX(-50%);
+    }
+    .petal:nth-child(1) { left:50%; top:50%; transform:translateX(-50%) rotate(0deg)   translateY(-100%); }
+    .petal:nth-child(2) { left:50%; top:50%; transform:translateX(-50%) rotate(60deg)  translateY(-100%); }
+    .petal:nth-child(3) { left:50%; top:50%; transform:translateX(-50%) rotate(120deg) translateY(-100%); }
+    .petal:nth-child(4) { left:50%; top:50%; transform:translateX(-50%) rotate(180deg) translateY(-100%); }
+    .petal:nth-child(5) { left:50%; top:50%; transform:translateX(-50%) rotate(240deg) translateY(-100%); }
+    .petal:nth-child(6) { left:50%; top:50%; transform:translateX(-50%) rotate(300deg) translateY(-100%); }
+    .deco-center {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 28px; height: 28px; border-radius: 50%;
+      background: radial-gradient(circle, #e8c84a, #8b6914);
+    }
+
+    /* Brand text */
+    .brand-text {
+      position: absolute; right: 12%; top: 50%; transform: translateY(-50%);
+      text-align: left; pointer-events: none; user-select: none;
+    }
+    .brand-text .line1,
+    .brand-text .line2 {
+      font-size: 3.8rem; font-weight: 800; letter-spacing: 0.1em;
+      color: #c9a227; opacity: 0.35; line-height: 1;
+    }
+
+    /* Card */
+    .card {
+      position: relative; z-index: 2;
+      width: 100%; max-width: 390px;
+      padding: 36px 32px 32px;
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.2);
+      animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .card.register-card {
+      max-width: 420px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      padding: 32px 32px 28px;
+      scrollbar-width: thin;
+      scrollbar-color: #d8dce8 transparent;
+    }
+    .card.register-card::-webkit-scrollbar { width: 5px; }
+    .card.register-card::-webkit-scrollbar-track { background: transparent; }
+    .card.register-card::-webkit-scrollbar-thumb { background: #d8dce8; border-radius: 20px; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card h1 {
+      font-size: 1.45rem; font-weight: 700; color: #1a2044;
+      text-align: center; margin-bottom: 24px; letter-spacing: -0.01em;
+    }
+
+    .field {
+      display: block; width: 100%;
+      padding: 11px 14px; margin-bottom: 12px;
+      border: 1px solid #d8dce8; border-radius: 8px;
+      font-size: 0.9rem; color: #333; background: #fff;
+      outline: none; font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none; appearance: none;
+    }
+    .field::placeholder { color: #aab0c4; }
+    .field:focus { border-color: #2dd4bf; box-shadow: 0 0 0 3px rgba(45,212,191,0.15); }
+    .field.err { border-color: #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.1); }
+
+    select.field {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 13px center;
+      padding-right: 36px; cursor: pointer;
+    }
+
+    .forgot {
+      display: block; text-align: center; font-size: 0.8rem;
+      color: #8892aa; text-decoration: none; margin-bottom: 20px;
+      transition: color 0.15s;
+    }
+    .forgot:hover { color: #1a2044; }
+
+    .btn {
+      width: 100%; padding: 12px; border: none; border-radius: 50px;
+      background: linear-gradient(90deg, #2dd4bf 0%, #06b6d4 100%);
+      color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      letter-spacing: 0.01em; font-family: inherit;
+      transition: filter 0.15s, transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 16px rgba(6,182,212,0.4);
+      margin-bottom: 20px;
+    }
+    .btn:hover { filter: brightness(1.06); transform: translateY(-1px); box-shadow: 0 6px 22px rgba(6,182,212,0.5); }
+    .btn:active { transform: translateY(0); filter: brightness(0.97); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .card-footer { text-align: center; font-size: 0.82rem; color: #8892aa; }
+    .card-footer a { color: #2563eb; text-decoration: none; font-weight: 500; }
+    .card-footer a:hover { text-decoration: underline; }
+
+    .err-msg {
+      display: none; font-size: 0.78rem; color: #dc2626;
+      background: #fef2f2; border: 1px solid #fecaca; border-radius: 7px;
+      padding: 9px 13px; margin-bottom: 14px; text-align: center;
+    }
+    .err-msg.show { display: block; }
+
+    /* Inline field error hints */
+    .field-hint {
+      display: none; font-size: 0.74rem; color: #dc2626;
+      margin-top: -8px; margin-bottom: 10px; padding-left: 2px;
+    }
+    .field-hint.show { display: block; }
+
+    /* Password strength bar */
+    .pw-strength-wrap { margin-top: -8px; margin-bottom: 10px; }
+    .pw-strength-bar { height: 4px; border-radius: 4px; background: #f3f4f6; overflow: hidden; }
+    .pw-strength-fill { height: 100%; border-radius: 4px; width: 0; transition: width 0.3s, background 0.3s; }
+    .pw-strength-label { font-size: 0.72rem; margin-top: 4px; color: #9ca3af; }
+    .pw-reqs { font-size: 0.72rem; color: #9ca3af; margin-top: 4px; line-height: 1.6; }
+    .pw-reqs span { display: inline-block; margin-right: 10px; }
+    .pw-reqs span.met { color: #16a34a; }
+    .pw-reqs span.unmet { color: #9ca3af; }
+
+    /* Add second address link */
+    .add-address-link {
+      display: inline-block; font-size: 0.82rem; color: #2563eb;
+      font-weight: 500; text-decoration: none; margin-bottom: 12px;
+      cursor: pointer; background: none; border: none; padding: 0;
+      font-family: inherit;
+    }
+    .add-address-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <ul class="nav-links">
+    <li><a href="#">Schedule</a></li>
+    <li><a href="#">Availability</a></li>
+    <li><a href="#">Timesheet</a></li>
+    <li><a href="#">Checklist</a></li>
+    <li><a href="#">Notifications</a></li>
+    <li><a href="#">Incident Form</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="nav-btn nav-btn-outline" onclick="showPanel('login')">Sign In</button>
+    <button class="nav-btn nav-btn-solid"   onclick="showPanel('register')">Register</button>
+  </div>
+</nav>
+
+<div class="scene">
+
+  <!-- Golden flower -->
+  <div class="deco">
+    <div class="deco-ring"></div>
+    <div class="deco-ring"></div>
+    <div class="deco-ring"></div>
+    <div class="petals">
+      <div class="petal"></div>
+      <div class="petal"></div>
+      <div class="petal"></div>
+      <div class="petal"></div>
+      <div class="petal"></div>
+      <div class="petal"></div>
+    </div>
+    <div class="deco-center"></div>
+  </div>
+
+  <!-- Brand name -->
+  <div class="brand-text">
+    <div class="line1">SUSHI</div>
+    <div class="line2">AKAYA</div>
+  </div>
+
+  <!-- Login card -->
+  <div class="card" id="loginCard">
+    <h1>Sign In</h1>
+    <form id="loginForm" onsubmit="handleSubmit(event)" novalidate>
+      <div class="err-msg" id="loginErr"></div>
+      <input type="email"    id="email"    class="field" placeholder="Your email"    autocomplete="email"            required />
+      <input type="password" id="password" class="field" placeholder="Your password" autocomplete="current-password" required />
+      <a href="#" class="forgot">Forgot Password?</a>
+      <button type="submit" class="btn" id="submitBtn">Sign In</button>
+    </form>
+    <p class="card-footer">Don't have an account? <a href="#" onclick="showPanel('register'); return false;">Register</a></p>
+  </div>
+
+  <!-- Register card -->
+  <div class="card register-card" id="registerCard" style="display:none;">
+    <h1>Register</h1>
+    <div class="err-msg" id="regErr"></div>
+    <form id="registerForm" onsubmit="handleRegister(event)" novalidate>
+      <input type="text"     id="regEmpId"    class="field" placeholder="Employee ID"              autocomplete="off" />
+
+      <input type="text"     id="regName"     class="field" placeholder="Full Name"                autocomplete="name"
+             oninput="liveValidateName()" />
+      <div class="field-hint" id="hintName">Name must contain only letters, spaces, hyphens, or apostrophes.</div>
+
+      <input type="email"    id="regEmail"    class="field" placeholder="Work Email"               autocomplete="email"
+             oninput="liveValidateEmail()" />
+      <div class="field-hint" id="hintEmail">Please enter a valid email address.</div>
+
+      <input type="password" id="regPassword" class="field" placeholder="Your password"            autocomplete="new-password"
+             oninput="liveValidatePassword()" />
+      <div class="pw-strength-wrap" id="pwStrengthWrap" style="display:none;">
+        <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwStrengthFill"></div></div>
+        <div class="pw-strength-label" id="pwStrengthLabel"></div>
+        <div class="pw-reqs">
+          <span id="reqLen">✗ 6+ chars</span>
+          <span id="reqSpecial">✗ Special char (!@#$…)</span>
+        </div>
+      </div>
+      <div class="field-hint" id="hintPassword">Password must be at least 6 characters and include a special character.</div>
+
+      <input type="password" id="regConfirm"  class="field" placeholder="Confirm password"         autocomplete="new-password"
+             oninput="liveValidateConfirm()" />
+      <div class="field-hint" id="hintConfirm">Passwords do not match.</div>
+
+      <input type="text"     id="regAddr1"    class="field" placeholder="Address Line 1"           autocomplete="address-line1" />
+      <div id="addr2Wrapper" style="display:none;">
+        <input type="text" id="regAddr2" class="field" placeholder="Address Line 2" autocomplete="address-line2" />
+      </div>
+      <button type="button" class="add-address-link" id="addAddr2Btn" onclick="toggleAddr2()">+ Add second address</button>
+      <select id="regProvince" class="field">
+        <option value="">Province / Territory</option>
+        <option>Alberta</option>
+        <option>British Columbia</option>
+        <option>Manitoba</option>
+        <option>New Brunswick</option>
+        <option>Newfoundland and Labrador</option>
+        <option>Northwest Territories</option>
+        <option>Nova Scotia</option>
+        <option>Nunavut</option>
+        <option>Ontario</option>
+        <option>Prince Edward Island</option>
+        <option>Quebec</option>
+        <option>Saskatchewan</option>
+        <option>Yukon</option>
+      </select>
+      <input type="text" id="regPostal" class="field" placeholder="Postal Code" autocomplete="postal-code" />
+
+      <input type="tel"  id="regPhone"  class="field" placeholder="Phone Number (e.g. 416-555-0123)" autocomplete="tel"
+             oninput="liveValidatePhone()" />
+      <div class="field-hint" id="hintPhone">Enter a valid 10-digit phone number (e.g. 416-555-0123 or 4165550123).</div>
+
+      <button type="submit" class="btn" id="regBtn">Create Account</button>
+    </form>
+    <p class="card-footer">Already have an account? <a href="#" onclick="showPanel('login'); return false;">Sign In</a></p>
+  </div>
+
+</div>
+
+<script>
+  // === User class (User.py) ===
+  class User {
+    constructor(userId, firstName, lastName, phoneNumber, email, password, dob) {
+      this.userId = userId; this.firstName = firstName; this.lastName = lastName;
+      this.phoneNumber = phoneNumber; this.email = email;
+      this.password = password; this.dob = dob; this.address = null;
+    }
+    fillOutForm(firstName, lastName, phoneNumber, password, dob, address) {
+      this.firstName = firstName; this.lastName = lastName;
+      this.phoneNumber = phoneNumber; this.password = password;
+      this.dob = dob; this.address = address;
+      console.log('User.fillOutForm: Form filled successfully.');
+      return true;
+    }
+    submitForValidation() {
+      if (!this.firstName || !this.lastName || !this.email || !this.password) {
+        console.log('User.submitForValidation: Validation failed – missing required fields');
+        return false;
+      }
+      if (!this.email.includes('@') || !this.email.includes('.')) {
+        console.log('User.submitForValidation: Validation failed – invalid email format');
+        return false;
+      }
+      if (this.password.length < 6) {
+        console.log('User.submitForValidation: Validation failed – password too short');
+        return false;
+      }
+      console.log('User.submitForValidation: Validation successful');
+      return true;
+    }
+    login(email, password) {
+      if (this.email === email && this.password === password) {
+        console.log('User.login: Login successful'); return true;
+      }
+      console.log('User.login: Login failed'); return false;
+    }
+    logout() { console.log('User.logout: User logged out'); return true; }
+  }
+
+  // === Address class (Address.py) ===
+  class Address {
+    constructor(postalCode, streetName, province) {
+      this.postalCode = postalCode; this.streetName = streetName; this.province = province;
+    }
+    validatePostalCode() {
+      if (this.postalCode !== '') {
+        console.log('Address.validatePostalCode: Postal code valid'); return true;
+      }
+      console.log('Address.validatePostalCode: Please fill out your Postal Code'); return false;
+    }
+    getFullAddress() {
+      const full = `${this.streetName}, ${this.province}, ${this.postalCode}`;
+      console.log('Address.getFullAddress:', full); return full;
+    }
+  }
+
+  function showPanel(panel) {
+    document.getElementById('loginCard').style.display    = panel === 'login'    ? '' : 'none';
+    document.getElementById('registerCard').style.display = panel === 'register' ? '' : 'none';
+  }
+
+  function toggleAddr2() {
+    const wrapper = document.getElementById('addr2Wrapper');
+    const btn     = document.getElementById('addAddr2Btn');
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = '';
+      btn.textContent = '- Remove second address';
+    } else {
+      wrapper.style.display = 'none';
+      document.getElementById('regAddr2').value = '';
+      btn.textContent = '+ Add second address';
+    }
+  }
+
+  // ── Live validation helpers ──────────────────────────────────────────────
+
+  function setFieldErr(inputId, hintId, show) {
+    document.getElementById(inputId).classList.toggle('err', show);
+    document.getElementById(hintId).classList.toggle('show', show);
+  }
+
+  const NAME_RE    = /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/;
+  const EMAIL_RE   = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const PHONE_RE   = /^[\d\s().+-]{10,}$/;        // at least 10 digits worth of chars
+  const DIGIT_RE   = /\d{10}/;                     // 10 consecutive digits after stripping
+  const SPECIAL_RE = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/;
+
+  function digitsOnly(v) { return v.replace(/\D/g, ''); }
+
+  function liveValidateName() {
+    const v = document.getElementById('regName').value.trim();
+    if (!v) { setFieldErr('regName', 'hintName', false); return; }
+    setFieldErr('regName', 'hintName', !NAME_RE.test(v));
+  }
+
+  function liveValidateEmail() {
+    const v = document.getElementById('regEmail').value.trim();
+    if (!v) { setFieldErr('regEmail', 'hintEmail', false); return; }
+    setFieldErr('regEmail', 'hintEmail', !EMAIL_RE.test(v));
+  }
+
+  function liveValidatePassword() {
+    const v   = document.getElementById('regPassword').value;
+    const wrap = document.getElementById('pwStrengthWrap');
+    wrap.style.display = v.length ? '' : 'none';
+
+    const hasLen     = v.length >= 6;
+    const hasSpecial = SPECIAL_RE.test(v);
+
+    // Requirement indicators
+    const rLen = document.getElementById('reqLen');
+    const rSpc = document.getElementById('reqSpecial');
+    rLen.textContent = (hasLen     ? '✓' : '✗') + ' 6+ chars';
+    rSpc.textContent = (hasSpecial ? '✓' : '✗') + ' Special char (!@#$…)';
+    rLen.className = hasLen     ? 'met' : 'unmet';
+    rSpc.className = hasSpecial ? 'met' : 'unmet';
+
+    // Strength score 0–4
+    let score = 0;
+    if (hasLen)            score++;
+    if (v.length >= 10)    score++;
+    if (hasSpecial)        score++;
+    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+
+    const fill   = document.getElementById('pwStrengthFill');
+    const label  = document.getElementById('pwStrengthLabel');
+    const levels = [
+      { pct: '20%', color: '#ef4444', text: 'Very weak'  },
+      { pct: '40%', color: '#f97316', text: 'Weak'       },
+      { pct: '60%', color: '#eab308', text: 'Fair'       },
+      { pct: '80%', color: '#22c55e', text: 'Strong'     },
+      { pct:'100%', color: '#16a34a', text: 'Very strong'},
+    ];
+    const lvl = levels[Math.max(0, score)];
+    fill.style.width      = lvl.pct;
+    fill.style.background = lvl.color;
+    label.textContent     = lvl.text;
+    label.style.color     = lvl.color;
+
+    const invalid = !hasLen || !hasSpecial;
+    document.getElementById('regPassword').classList.toggle('err', invalid && v.length > 0);
+    document.getElementById('hintPassword').classList.toggle('show', invalid && v.length > 0);
+
+    // Re-check confirm if already typed
+    if (document.getElementById('regConfirm').value) liveValidateConfirm();
+  }
+
+  function liveValidateConfirm() {
+    const pw  = document.getElementById('regPassword').value;
+    const cfm = document.getElementById('regConfirm').value;
+    if (!cfm) { setFieldErr('regConfirm', 'hintConfirm', false); return; }
+    setFieldErr('regConfirm', 'hintConfirm', pw !== cfm);
+  }
+
+  function liveValidatePhone() {
+    const v = document.getElementById('regPhone').value.trim();
+    if (!v) { setFieldErr('regPhone', 'hintPhone', false); return; }
+    const digits = digitsOnly(v);
+    setFieldErr('regPhone', 'hintPhone', digits.length !== 10);
+  }
+
+  // ── Submit ───────────────────────────────────────────────────────────────
+
+  function handleRegister(e) {
+    e.preventDefault();
+    const errEl = document.getElementById('regErr');
+    errEl.classList.remove('show');
+
+    const name     = document.getElementById('regName').value.trim();
+    const email    = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirm  = document.getElementById('regConfirm').value;
+    const phone    = document.getElementById('regPhone').value.trim();
+    const addr1    = document.getElementById('regAddr1').value.trim();
+    const province = document.getElementById('regProvince').value;
+    const postal   = document.getElementById('regPostal').value.trim();
+
+    let hasErr = false;
+
+    // Name – required + letters only
+    if (!name) {
+      document.getElementById('regName').classList.add('err');
+      document.getElementById('hintName').textContent = 'Full name is required.';
+      document.getElementById('hintName').classList.add('show');
+      hasErr = true;
+    } else if (!NAME_RE.test(name)) {
+      document.getElementById('regName').classList.add('err');
+      document.getElementById('hintName').textContent = 'Name must contain only letters, spaces, hyphens, or apostrophes.';
+      document.getElementById('hintName').classList.add('show');
+      hasErr = true;
+    }
+
+    // Email – required + format
+    if (!email) {
+      document.getElementById('regEmail').classList.add('err');
+      document.getElementById('hintEmail').textContent = 'Work email is required.';
+      document.getElementById('hintEmail').classList.add('show');
+      hasErr = true;
+    } else if (!EMAIL_RE.test(email)) {
+      document.getElementById('regEmail').classList.add('err');
+      document.getElementById('hintEmail').textContent = 'Please enter a valid email address.';
+      document.getElementById('hintEmail').classList.add('show');
+      hasErr = true;
+    }
+
+    // Password – required + length + special char
+    if (!password) {
+      document.getElementById('regPassword').classList.add('err');
+      document.getElementById('hintPassword').textContent = 'Password is required.';
+      document.getElementById('hintPassword').classList.add('show');
+      hasErr = true;
+    } else if (password.length < 6) {
+      document.getElementById('regPassword').classList.add('err');
+      document.getElementById('hintPassword').textContent = 'Password must be at least 6 characters.';
+      document.getElementById('hintPassword').classList.add('show');
+      hasErr = true;
+    } else if (!SPECIAL_RE.test(password)) {
+      document.getElementById('regPassword').classList.add('err');
+      document.getElementById('hintPassword').textContent = 'Password must include at least one special character (e.g. !@#$%).';
+      document.getElementById('hintPassword').classList.add('show');
+      hasErr = true;
+    }
+
+    // Confirm password
+    if (!confirm) {
+      document.getElementById('regConfirm').classList.add('err');
+      document.getElementById('hintConfirm').textContent = 'Please confirm your password.';
+      document.getElementById('hintConfirm').classList.add('show');
+      hasErr = true;
+    } else if (password !== confirm) {
+      document.getElementById('regConfirm').classList.add('err');
+      document.getElementById('hintConfirm').textContent = 'Passwords do not match.';
+      document.getElementById('hintConfirm').classList.add('show');
+      hasErr = true;
+    }
+
+    // Phone – required + 10 digits
+    if (!phone) {
+      document.getElementById('regPhone').classList.add('err');
+      document.getElementById('hintPhone').textContent = 'Phone number is required.';
+      document.getElementById('hintPhone').classList.add('show');
+      hasErr = true;
+    } else if (digitsOnly(phone).length !== 10) {
+      document.getElementById('regPhone').classList.add('err');
+      document.getElementById('hintPhone').textContent = 'Enter a valid 10-digit phone number (e.g. 416-555-0123).';
+      document.getElementById('hintPhone').classList.add('show');
+      hasErr = true;
+    }
+
+    if (hasErr) {
+      errEl.textContent = 'Please fix the highlighted fields before continuing.';
+      errEl.classList.add('show');
+      // Scroll to first error
+      const firstErr = document.querySelector('#registerForm .field.err');
+      if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // User.fillOutForm (User.py)
+    const newUser = new User(null, name.split(' ')[0], name.split(' ')[1] || '', phone, email, password, '');
+    newUser.fillOutForm(name.split(' ')[0], name.split(' ')[1] || '', phone, password, '', addr1);
+
+    // Address.validatePostalCode (Address.py)
+    const address = new Address(postal, addr1, province);
+    if (postal) { address.validatePostalCode(); address.getFullAddress(); }
+
+    // User.submitForValidation (User.py)
+    if (!newUser.submitForValidation()) {
+      errEl.textContent = 'Validation failed. Please check your information.';
+      errEl.classList.add('show'); return;
+    }
+
+    // Check duplicate email
+    const accounts = JSON.parse(localStorage.getItem('kaiji_accounts') || '{}');
+    if (accounts[email.toLowerCase()]) {
+      document.getElementById('regEmail').classList.add('err');
+      document.getElementById('hintEmail').textContent = 'An account with that email already exists.';
+      document.getElementById('hintEmail').classList.add('show');
+      errEl.textContent = 'An account with that email already exists. Please sign in.';
+      errEl.classList.add('show'); return;
+    }
+
+    const empIdVal = document.getElementById('regEmpId').value.trim() || String(Date.now()).slice(-4);
+
+    accounts[email.toLowerCase()] = { authKey: password, name, empId: empIdVal, phone, addr1, province, postal };
+    localStorage.setItem('kaiji_accounts', JSON.stringify(accounts));
+
+    const btn = document.getElementById('regBtn');
+    btn.textContent = 'Creating account…';
+    btn.disabled = true;
+
+    setTimeout(() => {
+      btn.textContent = 'Create Account';
+      btn.disabled = false;
+      document.getElementById('registerForm').reset();
+      document.getElementById('pwStrengthWrap').style.display = 'none';
+      showPanel('login');
+      const loginErr = document.getElementById('loginErr');
+      loginErr.textContent = 'Account created! Please sign in with your new credentials.';
+      loginErr.style.background = '#f0fdf4';
+      loginErr.style.borderColor = '#86efac';
+      loginErr.style.color = '#15803d';
+      loginErr.classList.add('show');
+    }, 900);
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const errEl   = document.getElementById('loginErr');
+    const emailEl = document.getElementById('email');
+    const passEl  = document.getElementById('password');
+    errEl.classList.remove('show');
+    emailEl.classList.remove('err');
+    passEl.classList.remove('err');
+
+    const email    = emailEl.value.trim();
+    const password = passEl.value;
+
+    if (!email || !password) {
+      errEl.textContent = 'Please enter your email and password.';
+      errEl.classList.add('show'); return;
+    }
+
+    const accounts = JSON.parse(localStorage.getItem('kaiji_accounts') || '{}');
+    const account  = accounts[email.toLowerCase()];
+
+    // User.login (User.py)
+    const userObj = new User(null, '', '', '', email, password, '');
+    if (!account || account.authKey !== password) {
+      userObj.login(email, password); // logs failure
+      errEl.textContent = 'Incorrect email or password. Please try again.';
+      errEl.classList.add('show');
+      emailEl.classList.add('err');
+      passEl.classList.add('err');
+      return;
+    }
+
+    userObj.login(email, password); // logs success
+
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = 'Signing in…';
+    btn.disabled = true;
+
+    sessionStorage.setItem('emp_loggedIn', 'true');
+    sessionStorage.setItem('emp_empId',    account.empId);
+    sessionStorage.setItem('emp_empName',  account.name);
+    sessionStorage.setItem('emp_userName', account.name.split(' ')[0]);
+
+    setTimeout(() => { window.location.href = 'emp_home.html'; }, 900);
+  }
+</script>
+</body>
+</html>
